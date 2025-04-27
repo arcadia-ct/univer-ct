@@ -863,11 +863,21 @@
       }
       
       enrollButtonContainer.appendChild(enrollButton);
+      content.appendChild(title);
+      content.appendChild(instructor);
+      content.appendChild(duration);
+      content.appendChild(desc);
+      content.appendChild(enrollButtonContainer);
+      
+      // Add divider always
+      const divider = document.createElement('hr');
+      divider.className = "border-gray-200 mb-4";
+      content.appendChild(divider);
       
       // Progress section - only show if enrolled
-      const progressContainer = document.createElement('div');
-      
       if (isEnrolled) {
+        const progressContainer = document.createElement('div');
+        
         const progressLabel = document.createElement('div');
         progressLabel.className = "flex justify-between mb-1";
         
@@ -898,78 +908,69 @@
         stats.textContent = `${completedLessons.length} of ${course.lessons.length} lessons completed`;
         
         progressContainer.appendChild(stats);
-        
-        // Rest of the existing course card code for lessons...
-        const divider = document.createElement('hr');
-        divider.className = "border-gray-200 mb-4";
-        
-        const lessonsContainer = document.createElement('div');
-        lessonsContainer.className = "relative";
-        
-        const lessonsHeader = document.createElement('div');
-        lessonsHeader.className = "flex justify-between items-center mb-3";
-        
-        const lessonsTitle = document.createElement('h3');
-        lessonsTitle.className = "font-semibold text-gray-700";
-        lessonsTitle.textContent = "Course Content";
-        
-        const lessonsCount = document.createElement('span');
-        lessonsCount.className = "text-xs text-gray-500";
-        lessonsCount.textContent = `${course.lessons.length} lessons`;
-        
-        lessonsHeader.appendChild(lessonsTitle);
-        lessonsHeader.appendChild(lessonsCount);
-        
-        const lessonsList = document.createElement('div');
-        lessonsList.className = "space-y-2 pr-1 max-h-48 always-show-scrollbar";
-
-        // Set fixed height and forced scrollbars with inline styles
-        lessonsList.style.overflowY = "scroll";
-        lessonsList.style.height = "12rem";
-        lessonsList.style.border = "1px solid #e5e7eb";
-        lessonsList.style.borderRadius = "0.375rem";
-        lessonsList.style.padding = "0.5rem";
-
-        // Force Firefox scrollbar
-        lessonsList.style.scrollbarWidth = "thin";
-        lessonsList.style.scrollbarColor = "#a435f0 #f3f4f6";
-
-        // Add lessons to demonstrate scrolling
-        course.lessons.forEach(lesson => {
-          lessonsList.appendChild(createLessonButton(lesson, course.id, isEnrolled));
-        });
-
-        // For browsers that don't show scrollbars by default
-        if (course.lessons.length < 3) {
-          const spacer = document.createElement('div');
-          spacer.style.height = "4rem";
-          lessonsList.appendChild(spacer);
-        }
-        
-        lessonsContainer.appendChild(lessonsHeader);
-        lessonsContainer.appendChild(lessonsList);
-        
-        content.appendChild(title);
-        content.appendChild(instructor);
-        content.appendChild(duration);
-        content.appendChild(desc);
-        content.appendChild(enrollButtonContainer);
-        content.appendChild(divider);
         content.appendChild(progressContainer);
-        content.appendChild(lessonsContainer);
-      } else {
-        // For non-enrolled courses, show minimal info
-        content.appendChild(title);
-        content.appendChild(instructor);
-        content.appendChild(duration);
-        content.appendChild(desc);
-        content.appendChild(enrollButtonContainer);
-        
-        // Add a message that user needs to enroll
-        const enrollMessage = document.createElement('div');
-        enrollMessage.className = "text-center bg-gray-50 p-4 rounded-md border border-gray-100 mt-2";
-        enrollMessage.innerHTML = '<i class="fas fa-lock text-gray-400 mb-2 text-lg"></i><p class="text-gray-500 text-sm">Enroll to access course content</p>';
-        content.appendChild(enrollMessage);
+      }
+      
+      // Course content section - show for both enrolled and non-enrolled
+      const lessonsContainer = document.createElement('div');
+      lessonsContainer.className = "relative";
+      
+      const lessonsHeader = document.createElement('div');
+      lessonsHeader.className = "flex justify-between items-center mb-3";
+      
+      const lessonsTitle = document.createElement('h3');
+      lessonsTitle.className = "font-semibold text-gray-700";
+      lessonsTitle.textContent = "Course Content";
+      
+      const lessonsCount = document.createElement('span');
+      lessonsCount.className = "text-xs text-gray-500";
+      lessonsCount.textContent = `${course.lessons.length} lessons`;
+      
+      lessonsHeader.appendChild(lessonsTitle);
+      lessonsHeader.appendChild(lessonsCount);
+      
+      const lessonsList = document.createElement('div');
+      lessonsList.className = "space-y-2 pr-1 max-h-48 always-show-scrollbar";
+
+      // Set fixed height and forced scrollbars with inline styles
+      lessonsList.style.overflowY = "scroll";
+      lessonsList.style.height = "12rem";
+      lessonsList.style.border = "1px solid #e5e7eb";
+      lessonsList.style.borderRadius = "0.375rem";
+      lessonsList.style.padding = "0.5rem";
+
+      // Force Firefox scrollbar
+      lessonsList.style.scrollbarWidth = "thin";
+      lessonsList.style.scrollbarColor = "#a435f0 #f3f4f6";
+
+      // Add lessons to demonstrate scrolling
+      course.lessons.forEach(lesson => {
+        lessonsList.appendChild(createLessonButton(lesson, course.id, isEnrolled));
+      });
+
+      // For browsers that don't show scrollbars by default
+      if (course.lessons.length < 3) {
+        const spacer = document.createElement('div');
+        spacer.style.height = "4rem";
+        lessonsList.appendChild(spacer);
+      }
+      
+      lessonsContainer.appendChild(lessonsHeader);
+      lessonsContainer.appendChild(lessonsList);
+      
+      content.appendChild(lessonsContainer);
+      
+      // Only add enrollment message overlay for non-enrolled courses
+      if (!isEnrolled) {
+        const enrollOverlay = document.createElement('div');
+        enrollOverlay.className = "mt-2 text-center";
+        enrollOverlay.innerHTML = `
+          <div class="text-xs text-gray-500 py-2 bg-gray-50 border border-gray-100 rounded-md">
+            <i class="fas fa-lock text-gray-400 mr-1"></i>
+            Enroll to access these lessons
+          </div>
+        `;
+        content.appendChild(enrollOverlay);
       }
       
       courseCard.appendChild(content);
