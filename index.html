@@ -480,7 +480,8 @@
                   width="100%" 
                   height="100%" 
                   frameborder="0"
-                  class="w-full aspect-video">
+                  class="w-full aspect-video"
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-presentation">
                 </iframe>
               </div>
             </div>
@@ -512,7 +513,8 @@
                     width="100%" 
                     height="100%" 
                     frameborder="0"
-                    class="min-h-[500px] w-full">
+                    class="min-h-[500px] w-full"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads">
                   </iframe>
                   <div id="scrollTracker" class="absolute right-2 top-2 bg-gray-800 bg-opacity-75 text-white px-2 py-1 rounded text-xs">
                     Page 1 of 12
@@ -618,16 +620,17 @@
       // Update slide counter
       document.getElementById('slideCounter').textContent = `Slide ${currentDocumentSlide} of ${totalSlides}`;
       
-      // Use Microsoft's Office Online viewer with slide parameter
+      // Use Microsoft's Office Online viewer with slide parameter - change wdSlideId to wdStartOn
       const slideFrame = document.getElementById('slideFrame');
       slideFrame.innerHTML = `
         <iframe 
-          src="https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(lesson.documentUrl)}&wdSlideId=${currentDocumentSlide}" 
+          src="https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(lesson.documentUrl)}&wdStartOn=${currentDocumentSlide}" 
           width="100%" 
           height="100%" 
           frameborder="0"
-          class="w-full aspect-video">
-        </iframe>
+          class="w-full aspect-video"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-presentation"
+        ></iframe>
       `;
       
       // Set up external link
@@ -670,8 +673,9 @@
             height="${totalPages * 100}%" 
             frameborder="0"
             style="min-height: 500px; height: ${totalPages * 100}%;"
-            scrolling="no">
-          </iframe>
+            scrolling="no"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
+          ></iframe>
           <div id="scrollTracker" class="absolute right-2 top-2 bg-gray-800 bg-opacity-75 text-white px-2 py-1 rounded text-xs">
             Page 1 of ${totalPages}
           </div>
@@ -770,7 +774,7 @@
       // Update UI
       document.getElementById('slideCounter').textContent = `Slide ${currentDocumentSlide} of ${totalSlides}`;
       
-      // Reload iframe with new slide number
+      // Reload iframe with new slide number - use wdStartOn instead of wdSlideId
       const slideFrame = document.getElementById('slideFrame');
       const lesson = courses.find(c => c.id === currentCourseId)
         ?.lessons.find(l => l.id === currentLessonId);
@@ -778,12 +782,13 @@
       if (lesson) {
         slideFrame.innerHTML = `
           <iframe 
-            src="https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(lesson.documentUrl)}&wdSlideId=${currentDocumentSlide}" 
+            src="https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(lesson.documentUrl)}&wdStartOn=${currentDocumentSlide}" 
             width="100%" 
             height="100%" 
             frameborder="0"
-            class="w-full aspect-video">
-          </iframe>
+            class="w-full aspect-video"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-presentation"
+          ></iframe>
         `;
       }
       
