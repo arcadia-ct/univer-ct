@@ -183,23 +183,6 @@
           </span>
         </div>
         
-        <div class="flex items-center flex-1 max-w-lg mx-8">
-          <div class="relative w-full">
-            <input 
-              id="searchInput" 
-              type="text" 
-              placeholder="Search for courses or lessons..." 
-              class="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent"
-            >
-            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <i class="fas fa-search text-gray-400"></i>
-            </div>
-            <button id="clearSearch" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 hidden">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-        </div>
-        
         <div class="flex items-center">
           <button class="ml-4 p-2 rounded-full hover:bg-gray-100">
             <i class="fas fa-user-circle text-gray-500 text-xl"></i>
@@ -262,8 +245,26 @@
       <!-- All Courses Page -->
       <div id="allCoursesPage" class="block">
         <div class="mb-8 border-b border-gray-200 pb-4">
-          <h1 id="platformTitle" class="text-3xl font-bold text-gray-900">My Courses</h1>
-          <p class="mt-2 text-gray-600">Continue learning where you left off</p>
+          <h1 id="platformTitle" class="text-3xl font-bold text-gray-900 mb-2">My Courses</h1>
+          <div class="flex items-center justify-between flex-wrap gap-4">
+            <p class="text-gray-600">Continue learning where you left off</p>
+            
+            <!-- Add search bar here -->
+            <div class="relative w-full max-w-md">
+              <input 
+                id="searchInput" 
+                type="text" 
+                placeholder="Search for courses or lessons..." 
+                class="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent"
+              >
+              <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <i class="fas fa-search text-gray-400"></i>
+              </div>
+              <button id="clearSearch" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 hidden">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
         </div>
         
         <div id="courses" class="grid grid-cols-1 md:grid-cols-2 gap-8"></div>
@@ -1036,13 +1037,23 @@
         
         // Show the original heading
         document.getElementById('platformTitle').textContent = platformConfig.pageTitle;
-        document.querySelector('#platformTitle + p').textContent = "Continue learning where you left off";
+        
+        // Fixed: Check if the element exists before accessing its text content
+        const subheadingElement = document.querySelector('.flex.items-center.justify-between.flex-wrap p.text-gray-600');
+        if (subheadingElement) {
+          subheadingElement.textContent = "Continue learning where you left off";
+        }
         return;
       }
       
       // Update the heading to show search results
       document.getElementById('platformTitle').textContent = `Search results for "${query}"`;
-      document.querySelector('#platformTitle + p').textContent = "Courses and lessons matching your search";
+      
+      // Fixed: Update the subheading with the correct selector
+      const subheadingElement = document.querySelector('.flex.items-center.justify-between.flex-wrap p.text-gray-600');
+      if (subheadingElement) {
+        subheadingElement.textContent = "Courses and lessons matching your search";
+      }
       
       // Track matches to update the UI appropriately
       let matchCount = 0;
@@ -1089,7 +1100,12 @@
       // Update heading if no results found
       if (matchCount === 0) {
         document.getElementById('platformTitle').textContent = "No results found";
-        document.querySelector('#platformTitle + p').textContent = `No courses or lessons match "${query}"`;
+        
+        // Fixed: Update no results message with the correct selector
+        const subheadingElement = document.querySelector('.flex.items-center.justify-between.flex-wrap p.text-gray-600');
+        if (subheadingElement) {
+          subheadingElement.textContent = `No courses or lessons match "${query}"`;
+        }
       }
     }
 
