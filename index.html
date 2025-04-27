@@ -72,10 +72,25 @@
             <span id="navTitle">Learning Platform</span>
           </span>
         </div>
+        
+        <div class="flex items-center flex-1 max-w-lg mx-8">
+          <div class="relative w-full">
+            <input 
+              id="searchInput" 
+              type="text" 
+              placeholder="Search for courses or lessons..." 
+              class="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent"
+            >
+            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <i class="fas fa-search text-gray-400"></i>
+            </div>
+            <button id="clearSearch" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 hidden">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+        
         <div class="flex items-center">
-          <button class="p-2 rounded-full hover:bg-gray-100">
-            <i class="fas fa-search text-gray-500"></i>
-          </button>
           <button class="ml-4 p-2 rounded-full hover:bg-gray-100">
             <i class="fas fa-user-circle text-gray-500 text-xl"></i>
           </button>
@@ -126,7 +141,8 @@
   <script>
     // Configuration object - Edit these values to customize your platform
     const platformConfig = {
-      title: "Learning Platform",  // Main title shown on page and browser tab
+      title: "Learning Platform",  // Navigation & browser tab title
+      pageTitle: "My Learning",    // Main heading on the page
       courses: [
         {
           id: "course-1",
@@ -515,11 +531,106 @@
       return course.lessons.filter(lesson => isCompleted(lesson.id));
     }
 
+    // Search functionality
+    function setupSearch() {
+      const searchInput = document.getElementById('searchInput');
+      const clearButton = document.getElementById('clearSearch');
+      
+      // Show/hide the clear button based on input content
+      searchInput.addEventListener('input', function() {
+        if (this.value.length > 0) {
+          clearButton.classList.remove('hidden');
+        } else {
+          clearButton.classList.add('hidden');
+        }
+        
+        performSearch(this.value.toLowerCase());
+      });
+      
+      // Clear search when the X button is clicked
+      clearButton.addEventListener('click', function() {
+        searchInput.value = '';
+        clearButton.classList.add('hidden');
+        performSearch('');
+        searchInput.focus();
+      });
+    }
+
+    function performSearch(query) {
+      // Get all course cards and reset them first
+      const courseCards = document.querySelectorAll('.course-card');
+      
+      // If query is empty, show all courses
+      if (!query) {
+        courseCards.forEach(card => {
+          card.classList.remove('hidden');
+        });
+        
+        // Show the original heading
+        document.getElementById('platformTitle').textContent = platformConfig.pageTitle;
+        document.querySelector('#platformTitle + p').textContent = "Continue learning where you left off";
+        return;
+      }
+      
+      // Update the heading to show search results
+      document.getElementById('platformTitle').textContent = `Search results for "${query}"`;
+      document.querySelector('#platformTitle + p').textContent = "Courses and lessons matching your search";
+      
+      // Track matches to update the UI appropriately
+      let matchCount = 0;
+      
+      // For each course, check if title, description, or any lesson title matches
+      courseCards.forEach(card => {
+        const courseTitle = card.querySelector('h2').textContent.toLowerCase();
+        const courseDescription = card.querySelector('p.text-gray-700').textContent.toLowerCase();
+        
+        // Get all lesson buttons in this course
+        const lessonButtons = card.querySelectorAll('button[data-lesson-id]');
+        let hasMatchingLesson = false;
+        
+        // Check if any lesson title matches
+        lessonButtons.forEach(button => {
+          const lessonTitle = button.querySelector('span').textContent.toLowerCase();
+          
+          if (lessonTitle.includes(query)) {
+            // Highlight matching lesson
+            button.classList.add('ring-2', 'ring-brand-purple', 'ring-opacity-50');
+            hasMatchingLesson = true;
+          } else {
+            // Remove highlight if not matching
+            button.classList.remove('ring-2', 'ring-brand-purple', 'ring-opacity-50');
+          }
+        });
+        
+        // Show course if title, description or any lesson matches
+        if (courseTitle.includes(query) || courseDescription.includes(query) || hasMatchingLesson) {
+          card.classList.remove('hidden');
+          matchCount++;
+          
+          // Add subtle highlight to course card if direct match
+          if (courseTitle.includes(query) || courseDescription.includes(query)) {
+            card.classList.add('ring-2', 'ring-brand-purple', 'ring-opacity-50');
+          } else {
+            card.classList.remove('ring-2', 'ring-brand-purple', 'ring-opacity-50');
+          }
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+      
+      // Update heading if no results found
+      if (matchCount === 0) {
+        document.getElementById('platformTitle').textContent = "No results found";
+        document.querySelector('#platformTitle + p').textContent = `No courses or lessons match "${query}"`;
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('navTitle').textContent = platformConfig.title;
-      document.getElementById('platformTitle').textContent = "My Learning";
+      document.getElementById('platformTitle').textContent = platformConfig.pageTitle;
       document.title = platformConfig.title;
       
+      setupSearch(); // Initialize search functionality
       renderCourses();
     });
 
