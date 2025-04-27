@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Learning Platform</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985',
+            },
+            brand: {
+              purple: '#a435f0',
+              dark: '#2d2f31',
+              light: '#1e1e1c',
+            }
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    .course-card {
+      transition: all 0.2s ease-in-out;
+    }
+    .course-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+    .progress-bar-animated {
+      background-size: 30px 30px;
+      background-image: linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.15) 25%,
+        transparent 25%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.15) 50%,
+        rgba(255, 255, 255, 0.15) 75%,
+        transparent 75%,
+        transparent
+      );
+      animation: progress-bar-stripes 1s linear infinite;
+    }
+    @keyframes progress-bar-stripes {
+      from { background-position: 30px 0; }
+      to { background-position: 0 0; }
+    }
+    .lesson-button:hover .lesson-icon {
+      transform: translateX(4px);
+    }
+    .lesson-icon {
+      transition: transform 0.2s ease;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+  <!-- Top Navigation -->
+  <nav class="bg-white shadow-sm border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center">
+          <span id="brandLogo" class="text-2xl font-bold text-brand-purple">
+            <i class="fas fa-graduation-cap mr-2"></i>
+            <span id="navTitle">Learning Platform</span>
+          </span>
+        </div>
+        <div class="flex items-center">
+          <button class="p-2 rounded-full hover:bg-gray-100">
+            <i class="fas fa-search text-gray-500"></i>
+          </button>
+          <button class="ml-4 p-2 rounded-full hover:bg-gray-100">
+            <i class="fas fa-user-circle text-gray-500 text-xl"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8 border-b border-gray-200 pb-4">
+      <h1 id="platformTitle" class="text-3xl font-bold text-gray-900">My Courses</h1>
+      <p class="mt-2 text-gray-600">Continue learning where you left off</p>
+    </div>
+    
+    <div id="courses" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+  </div>
+
+  <!-- Video Modal -->
+  <div id="videoModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-lg w-full max-w-4xl shadow-2xl overflow-hidden">
+      <div class="bg-gray-100 border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+        <h2 id="lessonTitle" class="text-xl font-bold text-gray-800 truncate"></h2>
+        <button onclick="closeVideo()" class="text-gray-500 hover:text-red-600 focus:outline-none">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      
+      <div class="p-6">
+        <video id="lessonVideo" class="w-full rounded-lg shadow-lg" controls></video>
+      </div>
+      
+      <div class="bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-between">
+        <button id="restartButton" onclick="restartLesson()" 
+                class="flex items-center bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-md font-medium opacity-50 cursor-not-allowed" disabled>
+          <i class="fas fa-redo mr-2"></i>
+          Restart Lesson
+        </button>
+        <button id="markCompletedButton" onclick="markCompleted()" 
+                class="flex items-center bg-brand-purple hover:bg-purple-700 text-white px-6 py-3 rounded-md font-medium">
+          <i class="fas fa-check-circle mr-2"></i>
+          Mark as Completed
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Configuration object - Edit these values to customize your platform
+    const platformConfig = {
+      title: "Learning Platform",  // Main title shown on page and browser tab
+      courses: [
+        {
+          id: "course-1",
+          title: "Python Basics",
+          description: "Learn the fundamentals of Python programming with hands-on projects and exercises.",
+          image: "https://images.unsplash.com/photo-1649180556628-9ba704115795?q=80&w=3262&auto=format&fit=crop&ixlib=rb-4.0.3",
+          instructor: "Alex Johnson",
+          duration: "8 hours",
+          lessons: [
+            { id: "lesson-1", title: "Introduction to Python", videoUrl: "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4" },
+            { id: "lesson-2", title: "Variables and Data Types", videoUrl: "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4" },
+            { id: "lesson-3", title: "Control Flow and Loops", videoUrl: "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4" }
+          ]
+        },
+        {
+          id: "course-2",
+          title: "JavaScript Essentials",
+          description: "Master the basics of JavaScript including DOM manipulation, events, and modern ES6+ features.",
+          image: "https://images.unsplash.com/photo-1579468118864-1b9ea3c0db4a?q=80&w=3270&auto=format&fit=crop&ixlib=rb-4.0.3",
+          instructor: "Maria Garcia",
+          duration: "6.5 hours",
+          lessons: [
+            { id: "lesson-4", title: "JavaScript Fundamentals", videoUrl: "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4" },
+            { id: "lesson-5", title: "Working with the DOM", videoUrl: "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4" }
+          ]
+        }
+      ]
+    };
+
+    // Caching for localStorage
+    let progressCache = null;
+    let completedCache = null;
+    let currentLessonId = "";
+    
+    // Reference to courses from config
+    const courses = platformConfig.courses;
+
+    // Event handlers
+    function handleTimeUpdate() {
+      const video = document.getElementById('lessonVideo');
+      if (video && video.duration) {
+        const ratio = computeRatio(video);
+        storeProgress(currentLessonId, ratio);
+      }
+    }
+
+    function handlePause() {
+      const video = document.getElementById('lessonVideo');
+      if (video && video.duration) {
+        const ratio = computeRatio(video);
+        storeProgress(currentLessonId, ratio);
+      }
+    }
+
+    function renderCourses() {
+      const container = document.getElementById('courses');
+      container.innerHTML = '';
+
+      // Use DocumentFragment for better performance
+      const fragment = document.createDocumentFragment();
+
+      courses.forEach(course => {
+        fragment.appendChild(createCourseCard(course));
+      });
+
+      container.appendChild(fragment);
+    }
+
+    function createCourseCard(course) {
+      const completedLessons = getCompletedLessons(course);
+      const progress = calculateCourseProgress(course);
+      const isInProgress = progress > 0;
+      
+      const courseCard = document.createElement('div');
+      courseCard.className = "bg-white rounded-lg shadow-md overflow-hidden flex flex-col course-card border border-gray-200";
+      
+      const img = document.createElement('img');
+      img.src = course.image;
+      img.alt = course.title;
+      img.className = "h-48 w-full object-cover";
+      
+      const content = document.createElement('div');
+      content.className = "p-5 flex flex-col flex-1 border-t border-gray-100";
+      
+      const title = document.createElement('h2');
+      title.className = "text-xl font-bold mb-2 text-gray-800 leading-tight";
+      title.textContent = course.title;
+      
+      const instructor = document.createElement('p');
+      instructor.className = "text-sm text-gray-600 mb-1";
+      instructor.innerHTML = `<i class="fas fa-user-tie mr-2"></i>${course.instructor}`;
+      
+      const duration = document.createElement('p');
+      duration.className = "text-sm text-gray-600 mb-3";
+      duration.innerHTML = `<i class="fas fa-clock mr-2"></i>${course.duration} total`;
+      
+      const desc = document.createElement('p');
+      desc.className = "text-gray-700 text-sm mb-4 flex-grow";
+      desc.textContent = course.description;
+      
+      const progressLabel = document.createElement('div');
+      progressLabel.className = "flex justify-between mb-1";
+      
+      const progressText = document.createElement('span');
+      progressText.className = "text-sm font-medium text-gray-700";
+      progressText.textContent = isInProgress ? "Continue learning" : "Start learning";
+      
+      const progressPercentage = document.createElement('span');
+      progressPercentage.className = "text-sm font-medium text-gray-700";
+      progressPercentage.textContent = `${progress.toFixed(0)}%`;
+      
+      progressLabel.appendChild(progressText);
+      progressLabel.appendChild(progressPercentage);
+      
+      const progressContainer = document.createElement('div');
+      progressContainer.className = "mb-4";
+      
+      const progressBar = document.createElement('div');
+      progressBar.className = "w-full bg-gray-200 rounded-full h-2.5";
+      
+      const progressFill = document.createElement('div');
+      progressFill.className = `bg-brand-purple h-2.5 rounded-full ${progress > 0 && progress < 100 ? 'progress-bar-animated' : ''}`;
+      progressFill.style.width = `${progress}%`;
+      
+      progressBar.appendChild(progressFill);
+      progressContainer.appendChild(progressLabel);
+      progressContainer.appendChild(progressBar);
+      
+      const stats = document.createElement('p');
+      stats.className = "text-sm text-gray-500 mt-1 mb-4";
+      stats.textContent = `${completedLessons.length} of ${course.lessons.length} lessons completed`;
+      
+      const divider = document.createElement('hr');
+      divider.className = "border-gray-200 mb-4";
+      
+      const lessonsList = document.createElement('div');
+      lessonsList.className = "space-y-2";
+      
+      course.lessons.forEach(lesson => {
+        lessonsList.appendChild(createLessonButton(lesson));
+      });
+      
+      content.appendChild(title);
+      content.appendChild(instructor);
+      content.appendChild(duration);
+      content.appendChild(desc);
+      content.appendChild(divider);
+      content.appendChild(progressContainer);
+      content.appendChild(stats);
+      content.appendChild(lessonsList);
+      
+      courseCard.appendChild(img);
+      courseCard.appendChild(content);
+      
+      return courseCard;
+    }
+
+    function calculateCourseProgress(course) {
+      let totalProgress = 0;
+      course.lessons.forEach(lesson => {
+        if (isCompleted(lesson.id)) {
+          totalProgress += 1;
+        } else {
+          totalProgress += getStoredProgress(lesson.id) || 0;
+        }
+      });
+      
+      return (totalProgress / course.lessons.length) * 100;
+    }
+
+    function createLessonButton(lesson) {
+      const isDone = isCompleted(lesson.id);
+      const lessonProgress = (getStoredProgress(lesson.id) || 0) * 100;
+      const isStarted = lessonProgress > 0 && !isDone;
+      
+      const button = document.createElement('button');
+      button.className = `flex items-center justify-between w-full text-left p-3 rounded-lg transition-colors lesson-button
+        ${isDone ? 'bg-green-50 text-green-800 hover:bg-green-100' : 
+                isStarted ? 'bg-blue-50 text-blue-800 hover:bg-blue-100' : 
+                'bg-gray-50 hover:bg-gray-100 text-gray-800'}`;
+      button.dataset.lessonId = lesson.id;
+      
+      const leftSide = document.createElement('div');
+      leftSide.className = "flex items-center";
+      
+      let icon;
+      if (isDone) {
+        icon = '<i class="fas fa-check-circle text-green-500 mr-3"></i>';
+      } else if (isStarted) {
+        icon = '<i class="fas fa-play-circle text-blue-500 mr-3"></i>';
+      } else {
+        icon = '<i class="fas fa-circle text-gray-300 mr-3"></i>';
+      }
+      
+      leftSide.innerHTML = icon + `<span>${lesson.title}</span>`;
+      
+      const rightSide = document.createElement('div');
+      rightSide.className = "flex items-center";
+      
+      const progressText = document.createElement('span');
+      progressText.className = "text-xs mr-2";
+      if (isDone) {
+        progressText.textContent = "Completed";
+        progressText.className += " text-green-600";
+      } else if (isStarted) {
+        progressText.textContent = `${lessonProgress.toFixed(0)}%`;
+        progressText.className += " text-blue-600";
+      }
+      
+      const arrowIcon = document.createElement('span');
+      arrowIcon.className = "lesson-icon text-gray-400";
+      arrowIcon.innerHTML = '<i class="fas fa-chevron-right"></i>';
+      
+      rightSide.appendChild(progressText);
+      rightSide.appendChild(arrowIcon);
+      
+      button.appendChild(leftSide);
+      button.appendChild(rightSide);
+      
+      button.onclick = () => openVideo(lesson);
+      
+      return button;
+    }
+
+    function openVideo(lesson) {
+      currentLessonId = lesson.id;
+      const video = document.getElementById('lessonVideo');
+      document.getElementById('lessonTitle').textContent = lesson.title;
+      
+      // Update all button states based on current progress
+      updateButtonStates();
+      
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+      video.removeEventListener('pause', handlePause);
+      
+      video.src = lesson.videoUrl;
+      
+      video.onerror = function() {
+        alert(`Sorry, there was an error loading the video for "${lesson.title}"`);
+        closeVideo();
+      };
+      
+      video.addEventListener('loadedmetadata', function onMetadataLoaded() {
+        const savedProgress = getStoredProgress(lesson.id);
+        if (savedProgress > 0) {
+          video.currentTime = video.duration * savedProgress;
+          // Update buttons again after setting current time
+          updateButtonStates();
+        }
+        video.removeEventListener('loadedmetadata', onMetadataLoaded);
+      });
+      
+      video.addEventListener('timeupdate', handleTimeUpdate);
+      video.addEventListener('pause', handlePause);
+      
+      // Also update button states on timeupdate to enable/disable appropriately
+      video.addEventListener('timeupdate', updateButtonStates);
+      
+      document.getElementById('videoModal').classList.remove('hidden');
+    }
+
+    // Update both restart and mark completed buttons
+    function updateButtonStates() {
+      const video = document.getElementById('lessonVideo');
+      const progressRatio = getStoredProgress(currentLessonId);
+      const completed = isCompleted(currentLessonId);
+      
+      // Restart button: enable only if there's progress to reset
+      const restartBtn = document.getElementById('restartButton');
+      if (progressRatio > 0 || (video && video.currentTime > 0)) {
+        restartBtn.disabled = false;
+        restartBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        restartBtn.classList.add('hover:bg-gray-300');
+      } else {
+        restartBtn.disabled = true;
+        restartBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        restartBtn.classList.remove('hover:bg-gray-300');
+      }
+      
+      // Mark completed button: disable if already at 100% or marked completed
+      const completeBtn = document.getElementById('markCompletedButton');
+      if (progressRatio === 1 || completed) {
+        completeBtn.disabled = true;
+        completeBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        completeBtn.classList.remove('hover:bg-purple-700');
+        completeBtn.innerHTML = completed ? 
+          '<i class="fas fa-check-double mr-2"></i>Lesson Completed' : 
+          '<i class="fas fa-check mr-2"></i>Already at 100%';
+      } else {
+        completeBtn.disabled = false;
+        completeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        completeBtn.classList.add('hover:bg-purple-700');
+        completeBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Mark as Completed';
+      }
+    }
+
+    function closeVideo() {
+      const video = document.getElementById("lessonVideo");
+      
+      video.onerror = null;
+
+      if (video && video.duration) {
+        const ratio = computeRatio(video);
+        storeProgress(currentLessonId, ratio);
+      }
+      
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+      video.removeEventListener('pause', handlePause);
+      video.removeEventListener('timeupdate', updateButtonStates);
+      
+      video.pause();
+      video.src = "";
+      
+      document.getElementById("videoModal").classList.add("hidden");
+      
+      renderCourses();
+    }
+
+    function restartLesson() {
+      const video = document.getElementById('lessonVideo');
+      
+      // Reset progress in storage
+      storeProgress(currentLessonId, 0);
+      
+      // Reset video to beginning
+      video.currentTime = 0;
+      
+      // Start playing from beginning
+      video.play();
+    }
+
+    function computeRatio(video) {
+      const computed = video.currentTime / video.duration;
+      return Number.isFinite(computed) && computed >= 0 && computed <= 1 ? computed : 0;
+    }
+
+    function getProgressCache() {
+      if (!progressCache) {
+        progressCache = JSON.parse(localStorage.getItem('partialProgress') || "{}");
+      }
+      return progressCache;
+    }
+
+    function getCompletedCache() {
+      if (!completedCache) {
+        completedCache = JSON.parse(localStorage.getItem('completedLessons') || "[]");
+      }
+      return completedCache;
+    }
+
+    function saveProgressCache() {
+      localStorage.setItem('partialProgress', JSON.stringify(progressCache));
+    }
+
+    function saveCompletedCache() {
+      localStorage.setItem('completedLessons', JSON.stringify(completedCache));
+    }
+
+    function storeProgress(lessonId, ratio) {
+      const cache = getProgressCache();
+      cache[lessonId] = ratio;
+      saveProgressCache();
+    }
+
+    function getStoredProgress(lessonId) {
+      return getProgressCache()[lessonId] || 0;
+    }
+
+    function markCompleted() {
+      const completed = getCompletedCache();
+      if (!completed.includes(currentLessonId)) {
+        completed.push(currentLessonId);
+        saveCompletedCache();
+      }
+      closeVideo();
+      renderCourses();
+    }
+
+    function isCompleted(lessonId) {
+      const completed = getCompletedCache();
+      const partials = getProgressCache();
+      return completed.includes(lessonId) || (partials[lessonId] === 1);
+    }
+
+    function getCompletedLessons(course) {
+      return course.lessons.filter(lesson => isCompleted(lesson.id));
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('navTitle').textContent = platformConfig.title;
+      document.getElementById('platformTitle').textContent = "My Learning";
+      document.title = platformConfig.title;
+      
+      renderCourses();
+    });
+
+    renderCourses();
+  </script>
+</body>
+</html>
