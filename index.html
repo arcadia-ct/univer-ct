@@ -119,8 +119,14 @@
         </button>
       </div>
       
-      <div class="p-6">
-        <video id="lessonVideo" class="w-full rounded-lg shadow-lg" controls></video>
+      <div id="videoContainer" class="p-6">
+        <!-- Regular video player (for MP4) -->
+        <video id="lessonVideo" class="w-full rounded-lg shadow-lg hidden" controls></video>
+        
+        <!-- YouTube iframe (for YouTube videos) -->
+        <div id="youtubeContainer" class="relative pt-0 w-full hidden">
+          <div id="youtubePlayer" class="w-full rounded-lg shadow-lg aspect-video"></div>
+        </div>
       </div>
       
       <div class="bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-between">
@@ -139,10 +145,10 @@
   </div>
 
   <script>
-    // Configuration object - Edit these values to customize your platform
+    // Configuration object with full YouTube URLs
     const platformConfig = {
-      title: "Learning Platform",  // Navigation & browser tab title
-      pageTitle: "My Learning",    // Main heading on the page
+      title: "Learning Platform",
+      pageTitle: "My Learning",
       courses: [
         {
           id: "course-1",
@@ -152,9 +158,21 @@
           instructor: "Alex Johnson",
           duration: "8 hours",
           lessons: [
-            { id: "lesson-1", title: "Introduction to Python", videoUrl: "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4" },
-            { id: "lesson-2", title: "Variables and Data Types", videoUrl: "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4" },
-            { id: "lesson-3", title: "Control Flow and Loops", videoUrl: "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4" }
+            { 
+              id: "lesson-1", 
+              title: "Introduction to Python", 
+              videoUrl: "https://www.youtube.com/watch?v=K5KVEU3aaeQ"  // Full YouTube URL
+            },
+            { 
+              id: "lesson-2", 
+              title: "Variables and Data Types", 
+              videoUrl: "https://www.youtube.com/watch?v=QXeEoD0pB3E"  // Full YouTube URL
+            },
+            { 
+              id: "lesson-3", 
+              title: "Control Flow and Loops", 
+              videoUrl: "https://www.youtube.com/watch?v=6iF8Xb7Z3wQ"  // Full YouTube URL
+            }
           ]
         },
         {
@@ -165,12 +183,62 @@
           instructor: "Maria Garcia",
           duration: "6.5 hours",
           lessons: [
-            { id: "lesson-4", title: "JavaScript Fundamentals", videoUrl: "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4" },
-            { id: "lesson-5", title: "Working with the DOM", videoUrl: "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4" }
+            { 
+              id: "lesson-4", 
+              title: "JavaScript Fundamentals", 
+              videoUrl: "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4" 
+            },
+            { 
+              id: "lesson-5", 
+              title: "Working with the DOM", 
+              videoUrl: "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4" 
+            }
           ]
         }
       ]
     };
+
+    // Function to extract YouTube video ID from URL
+    function extractYouTubeVideoId(url) {
+      if (!url) return null;
+      
+      // Handle different YouTube URL formats
+      const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+      const match = url.match(regExp);
+      
+      return (match && match[7].length === 11) ? match[7] : null;
+    }
+
+    // Function to check if URL is a YouTube URL
+    function isYouTubeUrl(url) {
+      return url && (
+        url.includes('youtube.com') || 
+        url.includes('youtu.be') ||
+        url.includes('youtube-nocookie.com')
+      );
+    }
+
+    // Load YouTube API asynchronously
+    function loadYoutubeAPI() {
+      if (window.YT) return Promise.resolve(); // API already loaded
+      
+      return new Promise((resolve) => {
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        
+        // When API is ready
+        window.onYouTubeIframeAPIReady = function() {
+          resolve();
+        };
+      });
+    }
+
+    // Global reference to YouTube player
+    let youtubePlayer = null;
+    // Variable to store YouTube progress tracking interval
+    let youtubeProgressInterval = null;
 
     // Caching for localStorage
     let progressCache = null;
@@ -369,82 +437,165 @@
 
     function openVideo(lesson) {
       currentLessonId = lesson.id;
-      const video = document.getElementById('lessonVideo');
       document.getElementById('lessonTitle').textContent = lesson.title;
       
-      // Update all button states based on current progress
-      updateButtonStates();
-      
-      video.removeEventListener('timeupdate', handleTimeUpdate);
-      video.removeEventListener('pause', handlePause);
-      
-      video.src = lesson.videoUrl;
-      
-      video.onerror = function() {
-        alert(`Sorry, there was an error loading the video for "${lesson.title}"`);
-        closeVideo();
-      };
-      
-      video.addEventListener('loadedmetadata', function onMetadataLoaded() {
-        const savedProgress = getStoredProgress(lesson.id);
-        if (savedProgress > 0) {
-          video.currentTime = video.duration * savedProgress;
-          // Update buttons again after setting current time
-          updateButtonStates();
-        }
-        video.removeEventListener('loadedmetadata', onMetadataLoaded);
-      });
-      
-      video.addEventListener('timeupdate', handleTimeUpdate);
-      video.addEventListener('pause', handlePause);
-      
-      // Also update button states on timeupdate to enable/disable appropriately
-      video.addEventListener('timeupdate', updateButtonStates);
-      
+      // Show modal first (needed for YouTube player initialization)
       document.getElementById('videoModal').classList.remove('hidden');
+      
+      const videoElement = document.getElementById('lessonVideo');
+      const youtubeContainer = document.getElementById('youtubeContainer');
+      
+      // Clean up existing players/listeners
+      videoElement.removeEventListener('timeupdate', handleTimeUpdate);
+      videoElement.removeEventListener('pause', handlePause);
+      videoElement.removeEventListener('timeupdate', updateButtonStates);
+      
+      // Hide both containers initially
+      videoElement.classList.add('hidden');
+      youtubeContainer.classList.add('hidden');
+      
+      // Check if the URL is a YouTube URL
+      if (isYouTubeUrl(lesson.videoUrl)) {
+        // Extract the video ID from the URL
+        const videoId = extractYouTubeVideoId(lesson.videoUrl);
+        if (!videoId) {
+          alert(`Invalid YouTube URL for lesson "${lesson.title}"`);
+          closeVideo();
+          return;
+        }
+        
+        // Show YouTube container
+        youtubeContainer.classList.remove('hidden');
+        
+        // Load YouTube API if needed
+        loadYoutubeAPI().then(() => {
+          // Get saved progress
+          const savedProgress = getStoredProgress(lesson.id);
+          const startSeconds = savedProgress > 0 ? Math.floor(savedProgress * 100) : 0; // Approximate for starting point
+          
+          // Create YouTube player or load new video if player exists
+          if (youtubePlayer) {
+            // Destroy the previous player first
+            youtubePlayer.destroy();
+            youtubePlayer = null;
+          }
+
+          // Create new player each time
+          youtubePlayer = new YT.Player('youtubePlayer', {
+            videoId: videoId,
+            playerVars: {
+              'autoplay': 1,
+              'start': startSeconds,
+              'modestbranding': 1,
+              'rel': 0
+            },
+            events: {
+              'onStateChange': onYouTubeStateChange,
+              'onReady': function(event) {
+                updateButtonStates();
+              },
+              'onError': function(event) {
+                alert(`Error loading YouTube video for "${lesson.title}"`);
+                closeVideo();
+              }
+            }
+          });
+        });
+      } else {
+        // Regular video - use existing code
+        videoElement.classList.remove('hidden');
+        videoElement.src = lesson.videoUrl;
+        
+        videoElement.onerror = function() {
+          alert(`Sorry, there was an error loading the video for "${lesson.title}"`);
+          closeVideo();
+        };
+        
+        videoElement.addEventListener('loadedmetadata', function onMetadataLoaded() {
+          const savedProgress = getStoredProgress(lesson.id);
+          if (savedProgress > 0) {
+            videoElement.currentTime = videoElement.duration * savedProgress;
+          }
+          videoElement.removeEventListener('loadedmetadata', onMetadataLoaded);
+          updateButtonStates();
+        });
+        
+        videoElement.addEventListener('timeupdate', handleTimeUpdate);
+        videoElement.addEventListener('pause', handlePause);
+        videoElement.addEventListener('timeupdate', updateButtonStates);
+      }
     }
 
-    // Update both restart and mark completed buttons
-    function updateButtonStates() {
-      const video = document.getElementById('lessonVideo');
-      const progressRatio = getStoredProgress(currentLessonId);
-      const completed = isCompleted(currentLessonId);
-      
-      // Restart button: enable only if there's progress to reset
-      const restartBtn = document.getElementById('restartButton');
-      if (progressRatio > 0 || (video && video.currentTime > 0)) {
-        restartBtn.disabled = false;
-        restartBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-        restartBtn.classList.add('hover:bg-gray-300');
-      } else {
-        restartBtn.disabled = true;
-        restartBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        restartBtn.classList.remove('hover:bg-gray-300');
-      }
-      
-      // Mark completed button: disable if already at 100% or marked completed
-      const completeBtn = document.getElementById('markCompletedButton');
-      if (progressRatio === 1 || completed) {
-        completeBtn.disabled = true;
-        completeBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        completeBtn.classList.remove('hover:bg-purple-700');
-        completeBtn.innerHTML = completed ? 
-          '<i class="fas fa-check-double mr-2"></i>Lesson Completed' : 
-          '<i class="fas fa-check mr-2"></i>Already at 100%';
-      } else {
-        completeBtn.disabled = false;
-        completeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-        completeBtn.classList.add('hover:bg-purple-700');
-        completeBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Mark as Completed';
+    // Handle YouTube player state changes
+    function onYouTubeStateChange(event) {
+      // Store progress periodically (every 5 seconds)
+      if (event.data === YT.PlayerState.PLAYING) {
+        if (youtubeProgressInterval) clearInterval(youtubeProgressInterval);
+        
+        youtubeProgressInterval = setInterval(() => {
+          if (youtubePlayer && youtubePlayer.getCurrentTime) {
+            const currentTime = youtubePlayer.getCurrentTime();
+            const duration = youtubePlayer.getDuration();
+            
+            if (currentTime && duration) {
+              const ratio = currentTime / duration;
+              storeProgress(currentLessonId, ratio);
+              updateButtonStates();
+            }
+          }
+        }, 5000);
+      } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
+        // Store progress when paused or ended
+        if (youtubePlayer && youtubePlayer.getCurrentTime) {
+          const currentTime = youtubePlayer.getCurrentTime();
+          const duration = youtubePlayer.getDuration();
+          
+          if (currentTime && duration) {
+            const ratio = currentTime / duration;
+            storeProgress(currentLessonId, ratio);
+            updateButtonStates();
+          }
+        }
+        
+        // Clear interval when not playing
+        if (youtubeProgressInterval) {
+          clearInterval(youtubeProgressInterval);
+          youtubeProgressInterval = null;
+        }
       }
     }
 
     function closeVideo() {
-      const video = document.getElementById("lessonVideo");
+      // Clean up YouTube player
+      if (youtubeProgressInterval) {
+        clearInterval(youtubeProgressInterval);
+        youtubeProgressInterval = null;
+      }
       
+      // If YouTube player exists and is playing, store the progress
+      if (youtubePlayer && youtubePlayer.getPlayerState) {
+        try {
+          if (youtubePlayer.getPlayerState() !== YT.PlayerState.UNSTARTED) {
+            const currentTime = youtubePlayer.getCurrentTime();
+            const duration = youtubePlayer.getDuration();
+            
+            if (currentTime && duration) {
+              const ratio = currentTime / duration;
+              storeProgress(currentLessonId, ratio);
+            }
+          }
+          // Pause YouTube video to stop playback
+          youtubePlayer.pauseVideo();
+        } catch (e) {
+          console.error("Error handling YouTube player:", e);
+        }
+      }
+      
+      // Handle regular video player
+      const video = document.getElementById("lessonVideo");
       video.onerror = null;
 
-      if (video && video.duration) {
+      if (video.duration) {
         const ratio = computeRatio(video);
         storeProgress(currentLessonId, ratio);
       }
@@ -462,16 +613,25 @@
     }
 
     function restartLesson() {
-      const video = document.getElementById('lessonVideo');
-      
       // Reset progress in storage
       storeProgress(currentLessonId, 0);
       
-      // Reset video to beginning
-      video.currentTime = 0;
+      const videoElement = document.getElementById('lessonVideo');
+      const youtubeContainer = document.getElementById('youtubeContainer');
       
-      // Start playing from beginning
-      video.play();
+      if (!youtubeContainer.classList.contains('hidden')) {
+        // YouTube video is active
+        if (youtubePlayer && youtubePlayer.seekTo) {
+          youtubePlayer.seekTo(0);
+          youtubePlayer.playVideo();
+        }
+      } else {
+        // Regular video is active
+        videoElement.currentTime = 0;
+        videoElement.play();
+      }
+      
+      updateButtonStates();
     }
 
     function computeRatio(video) {
@@ -529,6 +689,60 @@
 
     function getCompletedLessons(course) {
       return course.lessons.filter(lesson => isCompleted(lesson.id));
+    }
+
+    function updateButtonStates() {
+      const video = document.getElementById('lessonVideo');
+      const youtubeContainer = document.getElementById('youtubeContainer');
+      const progressRatio = getStoredProgress(currentLessonId);
+      const completed = isCompleted(currentLessonId);
+      
+      let hasProgress = progressRatio > 0;
+      
+      // Check current time for both players
+      if (!hasProgress) {
+        if (!youtubeContainer.classList.contains('hidden')) {
+          // YouTube is active
+          if (youtubePlayer && youtubePlayer.getCurrentTime) {
+            try {
+              hasProgress = youtubePlayer.getCurrentTime() > 0;
+            } catch (e) {
+              console.error("Error getting YouTube time:", e);
+            }
+          }
+        } else if (video && video.duration) {
+          // Local video is active
+          hasProgress = video.currentTime > 0;
+        }
+      }
+      
+      // Restart button: enable only if there's progress to reset
+      const restartBtn = document.getElementById('restartButton');
+      if (hasProgress) {
+        restartBtn.disabled = false;
+        restartBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        restartBtn.classList.add('hover:bg-gray-300');
+      } else {
+        restartBtn.disabled = true;
+        restartBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        restartBtn.classList.remove('hover:bg-gray-300');
+      }
+      
+      // Mark completed button: disable if already at 100% or marked completed
+      const completeBtn = document.getElementById('markCompletedButton');
+      if (progressRatio === 1 || completed) {
+        completeBtn.disabled = true;
+        completeBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        completeBtn.classList.remove('hover:bg-purple-700');
+        completeBtn.innerHTML = completed ? 
+          '<i class="fas fa-check-double mr-2"></i>Lesson Completed' : 
+          '<i class="fas fa-check mr-2"></i>Already at 100%';
+      } else {
+        completeBtn.disabled = false;
+        completeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        completeBtn.classList.add('hover:bg-purple-700');
+        completeBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Mark as Completed';
+      }
     }
 
     // Search functionality
