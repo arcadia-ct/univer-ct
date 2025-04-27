@@ -412,47 +412,96 @@
       ]
     };
 
-    // Enrollment functions
-    let enrollmentCache = null;
+    // Main data store object
+    let dataStore = null;
 
-    function getEnrollmentCache() {
-      if (!enrollmentCache) {
-        enrollmentCache = JSON.parse(localStorage.getItem('enrolledCourses') || "[]");
+    // Add variables to track current course and lesson
+    let currentCourseId = "";
+    let currentLessonId = "";
+
+    // Global reference to YouTube player
+    let youtubePlayer = null;
+
+    // Variable to store YouTube progress tracking interval
+    let youtubeProgressInterval = null;
+      
+    // Reference to courses from config
+    const courses = platformConfig.courses;
+
+    // Initialize and get the data store
+    function getDataStore() {
+      if (!dataStore) {
+        // Attempt to load from localStorage
+        const storedData = localStorage.getItem('learningData');
+        
+        if (storedData) {
+          try {
+            dataStore = JSON.parse(storedData);
+          } catch (e) {
+            console.error("Error parsing stored data:", e);
+            dataStore = createEmptyDataStore();
+          }
+        } else {
+          // Initialize with empty structure if nothing exists
+          dataStore = createEmptyDataStore();
+        }
       }
-      return enrollmentCache;
+      return dataStore;
     }
 
-    function saveEnrollmentCache() {
-      localStorage.setItem('enrolledCourses', JSON.stringify(enrollmentCache));
+    // Create empty data store structure
+    function createEmptyDataStore() {
+      return {
+        courses: {},
+        lastUpdated: Date.now()
+      };
     }
 
+    // Save the entire data store
+    function saveDataStore() {
+      if (dataStore) {
+        dataStore.lastUpdated = Date.now();
+        localStorage.setItem('learningData', JSON.stringify(dataStore));
+      }
+    }
+
+    // Enrollment functions
     function checkEnrollmentStatus(courseId) {
-      return getEnrollmentCache().includes(courseId);
+      const data = getDataStore();
+      return data.courses[courseId]?.enrolled === true;
     }
 
     function enrollInCourse(courseId) {
-      const enrollments = getEnrollmentCache();
-      if (!enrollments.includes(courseId)) {
-        enrollments.push(courseId);
-        saveEnrollmentCache();
-        
-        // Show success message
-        showToast(`You've successfully enrolled in the course!`, 'success');
-        
-        // Re-render courses to update UI
-        renderCourses();
+      const data = getDataStore();
+      
+      // Initialize course object if it doesn't exist
+      if (!data.courses[courseId]) {
+        data.courses[courseId] = {
+          enrolled: false,
+          lessons: {}
+        };
       }
+      
+      // Mark as enrolled
+      data.courses[courseId].enrolled = true;
+      saveDataStore();
+      
+      // Show success message
+      showToast(`You've successfully enrolled in the course!`, 'success');
+      
+      // Re-render courses to update UI
+      renderCourses();
     }
 
     function unenrollFromCourse(courseId) {
-      const enrollments = getEnrollmentCache();
-      const index = enrollments.indexOf(courseId);
+      const data = getDataStore();
       
-      if (index !== -1) {
+      if (data.courses[courseId]?.enrolled) {
         // Ask for confirmation before unenrolling
         if (confirm("Are you sure you want to unenroll from this course? Your progress will be preserved, but the course will be removed from your active courses.")) {
-          enrollments.splice(index, 1);
-          saveEnrollmentCache();
+          // Mark as unenrolled but keep lesson data
+          data.courses[courseId].enrolled = false;
+          saveDataStore();
           
           // Show message
           showToast('You have unenrolled from the course.', 'info');
@@ -461,6 +510,85 @@
           renderCourses();
         }
       }
+    }
+
+    // Lesson progress functions
+    function storeProgress(courseId, lessonId, ratio) {
+      const data = getDataStore();
+      
+      // Initialize course and lesson objects if they don't exist
+      if (!data.courses[courseId]) {
+        data.courses[courseId] = {
+          enrolled: false,
+          lessons: {}
+        };
+      }
+      
+      if (!data.courses[courseId].lessons[lessonId]) {
+        data.courses[courseId].lessons[lessonId] = {
+          completed: false,
+          partialProgress: 0
+        };
+      }
+      
+      // Update progress
+      data.courses[courseId].lessons[lessonId].partialProgress = ratio;
+      
+      // Automatically mark as completed if progress reaches 100%
+      if (ratio >= 1) {
+        data.courses[courseId].lessons[lessonId].completed = true;
+      }
+      
+      saveDataStore();
+    }
+
+    function getStoredProgress(courseId, lessonId) {
+      const data = getDataStore();
+      return data.courses[courseId]?.lessons[lessonId]?.partialProgress || 0;
+    }
+
+    function markLessonCompleted(courseId, lessonId) {
+      const data = getDataStore();
+      
+      // Initialize course and lesson objects if they don't exist
+      if (!data.courses[courseId]) {
+        data.courses[courseId] = {
+          enrolled: false,
+          lessons: {}
+        };
+      }
+      
+      if (!data.courses[courseId].lessons[lessonId]) {
+        data.courses[courseId].lessons[lessonId] = {
+          completed: false,
+          partialProgress: 0
+        };
+      }
+      
+      // Mark as completed and set progress to 100%
+      data.courses[courseId].lessons[lessonId].completed = true;
+      data.courses[courseId].lessons[lessonId].partialProgress = 1;
+      
+      saveDataStore();
+    }
+
+    function isLessonCompleted(courseId, lessonId) {
+      const data = getDataStore();
+      return data.courses[courseId]?.lessons[lessonId]?.completed === true || 
+            data.courses[courseId]?.lessons[lessonId]?.partialProgress === 1;
+    }
+
+    // Get all enrolled course IDs
+    function getEnrolledCourseIds() {
+      const data = getDataStore();
+      return Object.keys(data.courses).filter(courseId => 
+        data.courses[courseId].enrolled === true
+      );
+    }
+
+    // Get completed lessons for a course
+    function getCompletedLessons(course) {
+      return course.lessons.filter(lesson => isLessonCompleted(course.id, lesson.id));
     }
 
     // Toast notification function
@@ -543,25 +671,16 @@
       });
     }
 
-    // Global reference to YouTube player
-    let youtubePlayer = null;
-    // Variable to store YouTube progress tracking interval
-    let youtubeProgressInterval = null;
-
     // Caching for localStorage
     let progressCache = null;
     let completedCache = null;
-    let currentLessonId = "";
     
-    // Reference to courses from config
-    const courses = platformConfig.courses;
-
     // Event handlers
     function handleTimeUpdate() {
       const video = document.getElementById('lessonVideo');
       if (video && video.duration) {
         const ratio = computeRatio(video);
-        storeProgress(currentLessonId, ratio);
+        storeProgress(currentCourseId, currentLessonId, ratio);
       }
     }
 
@@ -569,7 +688,7 @@
       const video = document.getElementById('lessonVideo');
       if (video && video.duration) {
         const ratio = computeRatio(video);
-        storeProgress(currentLessonId, ratio);
+        storeProgress(currentCourseId, currentLessonId, ratio);
       }
     }
 
@@ -728,7 +847,7 @@
 
         // Add lessons to demonstrate scrolling
         course.lessons.forEach(lesson => {
-          lessonsList.appendChild(createLessonButton(lesson, isEnrolled));
+          lessonsList.appendChild(createLessonButton(lesson, course.id, isEnrolled));
         });
 
         // For browsers that don't show scrollbars by default
@@ -772,19 +891,19 @@
     function calculateCourseProgress(course) {
       let totalProgress = 0;
       course.lessons.forEach(lesson => {
-        if (isCompleted(lesson.id)) {
+        if (isLessonCompleted(course.id, lesson.id)) {
           totalProgress += 1;
         } else {
-          totalProgress += getStoredProgress(lesson.id) || 0;
+          totalProgress += getStoredProgress(course.id, lesson.id) || 0;
         }
       });
       
       return (totalProgress / course.lessons.length) * 100;
     }
 
-    function createLessonButton(lesson, isEnrolled = true) {
-      const isDone = isCompleted(lesson.id);
-      const lessonProgress = (getStoredProgress(lesson.id) || 0) * 100;
+    function createLessonButton(lesson, courseId, isEnrolled = true) {
+      const isDone = isLessonCompleted(courseId, lesson.id);
+      const lessonProgress = getStoredProgress(courseId, lesson.id) * 100;
       const isStarted = lessonProgress > 0 && !isDone;
       
       const button = document.createElement('button');
@@ -793,6 +912,7 @@
                   isStarted ? 'bg-blue-50 text-blue-800 hover:bg-blue-100' : 
                   'bg-gray-50 hover:bg-gray-100 text-gray-800'}`;
       button.dataset.lessonId = lesson.id;
+      button.dataset.courseId = courseId;
       
       const leftSide = document.createElement('div');
       leftSide.className = "flex items-center";
@@ -846,7 +966,26 @@
     }
 
     function openVideo(lesson) {
+      // Find the course this lesson belongs to
+      const course = courses.find(c => c.lessons.some(l => l.id === lesson.id));
+      const courseId = course ? course.id : null;
+      
+      if (!courseId) {
+        console.error("Could not find course for lesson:", lesson);
+        return;
+      }
+      
+      // Check if user is enrolled in this course
+      if (!checkEnrollmentStatus(courseId)) {
+        showToast('Please enroll in this course to view lessons', 'warning');
+        return;
+      }
+      
+      // Set current lesson and course IDs
       currentLessonId = lesson.id;
+      currentCourseId = courseId;
+      
+      // Rest of the existing function remains the same
       document.getElementById('lessonTitle').textContent = lesson.title;
       
       // Show modal first (needed for YouTube player initialization)
@@ -855,7 +994,7 @@
       const videoElement = document.getElementById('lessonVideo');
       const youtubeContainer = document.getElementById('youtubeContainer');
       
-      // Clean up existing players/listeners
+      // Clean up existing listeners
       videoElement.removeEventListener('timeupdate', handleTimeUpdate);
       videoElement.removeEventListener('pause', handlePause);
       videoElement.removeEventListener('timeupdate', updateButtonStates);
@@ -880,17 +1019,16 @@
         // Load YouTube API if needed
         loadYoutubeAPI().then(() => {
           // Get saved progress
-          const savedProgress = getStoredProgress(lesson.id);
-          const startSeconds = savedProgress > 0 ? Math.floor(savedProgress * 100) : 0; // Approximate for starting point
+          const savedProgress = getStoredProgress(courseId, lesson.id);
+          const startSeconds = savedProgress > 0 ? Math.floor(savedProgress * 100) : 0;
           
-          // Create YouTube player or load new video if player exists
+          // Create or recreate YouTube player
           if (youtubePlayer) {
-            // Destroy the previous player first
             youtubePlayer.destroy();
             youtubePlayer = null;
           }
 
-          // Create new player each time
+          // Create new player
           youtubePlayer = new YT.Player('youtubePlayer', {
             videoId: videoId,
             playerVars: {
@@ -912,7 +1050,7 @@
           });
         });
       } else {
-        // Regular video - use existing code
+        // Regular video handling remains largely the same
         videoElement.classList.remove('hidden');
         videoElement.src = lesson.videoUrl;
         
@@ -922,7 +1060,7 @@
         };
         
         videoElement.addEventListener('loadedmetadata', function onMetadataLoaded() {
-          const savedProgress = getStoredProgress(lesson.id);
+          const savedProgress = getStoredProgress(courseId, lesson.id);
           if (savedProgress > 0) {
             videoElement.currentTime = videoElement.duration * savedProgress;
           }
@@ -936,7 +1074,6 @@
       }
     }
 
-    // Handle YouTube player state changes
     function onYouTubeStateChange(event) {
       // Store progress periodically (every 5 seconds)
       if (event.data === YT.PlayerState.PLAYING) {
@@ -949,20 +1086,19 @@
             
             if (currentTime && duration) {
               const ratio = currentTime / duration;
-              storeProgress(currentLessonId, ratio);
+              storeProgress(currentCourseId, currentLessonId, ratio);
               updateButtonStates();
             }
           }
         }, 5000);
       } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
-        // Store progress when paused or ended
         if (youtubePlayer && youtubePlayer.getCurrentTime) {
           const currentTime = youtubePlayer.getCurrentTime();
           const duration = youtubePlayer.getDuration();
           
           if (currentTime && duration) {
             const ratio = currentTime / duration;
-            storeProgress(currentLessonId, ratio);
+            storeProgress(currentCourseId, currentLessonId, ratio);
             updateButtonStates();
           }
         }
@@ -991,7 +1127,7 @@
             
             if (currentTime && duration) {
               const ratio = currentTime / duration;
-              storeProgress(currentLessonId, ratio);
+              storeProgress(currentCourseId, currentLessonId, ratio);
             }
           }
           // Pause YouTube video to stop playback
@@ -1007,7 +1143,7 @@
 
       if (video.duration) {
         const ratio = computeRatio(video);
-        storeProgress(currentLessonId, ratio);
+        storeProgress(currentCourseId, currentLessonId, ratio);
       }
       
       video.removeEventListener('timeupdate', handleTimeUpdate);
@@ -1024,7 +1160,7 @@
 
     function restartLesson() {
       // Reset progress in storage
-      storeProgress(currentLessonId, 0);
+      storeProgress(currentCourseId, currentLessonId, 0);
       
       const videoElement = document.getElementById('lessonVideo');
       const youtubeContainer = document.getElementById('youtubeContainer');
@@ -1049,63 +1185,18 @@
       return Number.isFinite(computed) && computed >= 0 && computed <= 1 ? computed : 0;
     }
 
-    function getProgressCache() {
-      if (!progressCache) {
-        progressCache = JSON.parse(localStorage.getItem('partialProgress') || "{}");
-      }
-      return progressCache;
-    }
-
-    function getCompletedCache() {
-      if (!completedCache) {
-        completedCache = JSON.parse(localStorage.getItem('completedLessons') || "[]");
-      }
-      return completedCache;
-    }
-
-    function saveProgressCache() {
-      localStorage.setItem('partialProgress', JSON.stringify(progressCache));
-    }
-
-    function saveCompletedCache() {
-      localStorage.setItem('completedLessons', JSON.stringify(completedCache));
-    }
-
-    function storeProgress(lessonId, ratio) {
-      const cache = getProgressCache();
-      cache[lessonId] = ratio;
-      saveProgressCache();
-    }
-
-    function getStoredProgress(lessonId) {
-      return getProgressCache()[lessonId] || 0;
-    }
-
     function markCompleted() {
-      const completed = getCompletedCache();
-      if (!completed.includes(currentLessonId)) {
-        completed.push(currentLessonId);
-        saveCompletedCache();
-      }
+      // Use the hierarchical storage function
+      markLessonCompleted(currentCourseId, currentLessonId);
       closeVideo();
       renderCourses();
-    }
-
-    function isCompleted(lessonId) {
-      const completed = getCompletedCache();
-      const partials = getProgressCache();
-      return completed.includes(lessonId) || (partials[lessonId] === 1);
-    }
-
-    function getCompletedLessons(course) {
-      return course.lessons.filter(lesson => isCompleted(lesson.id));
     }
 
     function updateButtonStates() {
       const video = document.getElementById('lessonVideo');
       const youtubeContainer = document.getElementById('youtubeContainer');
-      const progressRatio = getStoredProgress(currentLessonId);
-      const completed = isCompleted(currentLessonId);
+      const progressRatio = getStoredProgress(currentCourseId, currentLessonId);
+      const completed = isLessonCompleted(currentCourseId, currentLessonId);
       
       let hasProgress = progressRatio > 0;
       
@@ -1302,13 +1393,12 @@
     }
     
     function renderProgressPage() {
-      // Count courses in progress
       let coursesInProgress = 0;
       let lessonsCompleted = 0;
       let totalLessons = 0;
       
       // Get enrolled courses
-      const enrolledCourseIds = getEnrollmentCache();
+      const enrolledCourseIds = getEnrolledCourseIds();
       
       // Reset the progress list
       const courseProgressList = document.getElementById('courseProgressList');
@@ -1316,7 +1406,7 @@
       
       // Check if user has any enrolled courses
       if (enrolledCourseIds.length === 0) {
-        // Show message when no courses are enrolled
+        // Show message when no courses are enrolled - code remains the same
         const noCourseMessage = document.createElement('div');
         noCourseMessage.className = "bg-white p-8 rounded-lg shadow text-center";
         noCourseMessage.innerHTML = `
@@ -1330,10 +1420,8 @@
         
         courseProgressList.appendChild(noCourseMessage);
         
-        // Add click event to the button
         document.getElementById('browseCourses').addEventListener('click', showAllCourses);
         
-        // Update stats with zeros
         document.getElementById('coursesInProgressCount').textContent = 0;
         document.getElementById('lessonsCompletedCount').textContent = 0;
         document.getElementById('overallProgressPercent').textContent = "0%";
@@ -1343,22 +1431,21 @@
       
       // Process each enrolled course
       courses.forEach(course => {
-        // Skip courses that user is not enrolled in
         if (!enrolledCourseIds.includes(course.id)) {
           return;
         }
         
         totalLessons += course.lessons.length;
         
-        const completedLessons = getCompletedLessons(course);
-        lessonsCompleted += completedLessons.length;
+        const completedLessonsCount = getCompletedLessons(course).length;
+        lessonsCompleted += completedLessonsCount;
         
         const progress = calculateCourseProgress(course);
         if (progress > 0 && progress < 100) {
           coursesInProgress++;
         }
         
-        // Create course progress card
+        // Create course progress card - this remains the same
         const courseCard = document.createElement('div');
         courseCard.className = "bg-white p-6 rounded-lg shadow border border-gray-200";
         
@@ -1399,8 +1486,8 @@
         lessonList.className = "mt-4 space-y-2 text-sm";
         
         course.lessons.forEach(lesson => {
-          const isDone = isCompleted(lesson.id);
-          const lessonProgress = (getStoredProgress(lesson.id) || 0) * 100;
+          const isDone = isLessonCompleted(course.id, lesson.id);
+          const lessonProgress = (getStoredProgress(course.id, lesson.id) || 0) * 100;
           
           const lessonRow = document.createElement('div');
           lessonRow.className = "flex items-center justify-between";
@@ -1550,8 +1637,6 @@
       // Add this line:
       setupSidebarToggle();
     });
-
-    renderCourses();
   </script>
 </body>
 </html>
