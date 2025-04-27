@@ -180,14 +180,105 @@
     </div>
   </nav>
 
-  <!-- Main Content -->
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="mb-8 border-b border-gray-200 pb-4">
-      <h1 id="platformTitle" class="text-3xl font-bold text-gray-900">My Courses</h1>
-      <p class="mt-2 text-gray-600">Continue learning where you left off</p>
+  <!-- Main Content with Sidebar -->
+  <div class="max-w-7xl mx-auto flex">
+    <!-- Left Sidebar -->
+    <div id="sidebar" class="w-64 bg-white border-r border-gray-200 h-[calc(100vh-4rem)] sticky top-16 overflow-y-auto">
+      <div class="p-4">
+        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          Navigation
+        </h3>
+
+        <!-- Navigation Links -->
+        <div class="space-y-2">
+          <button id="showAllCoursesBtn" class="flex items-center w-full px-3 py-2 text-gray-900 rounded-md hover:bg-gray-100 group active-nav-item">
+            <i class="fas fa-book-open mr-3 text-brand-purple"></i>
+            <span class="font-medium">All Courses</span>
+          </button>
+          
+          <button id="showMyProgressBtn" class="flex items-center w-full px-3 py-2 text-gray-600 rounded-md hover:bg-gray-100 group">
+            <i class="fas fa-chart-line mr-3 text-gray-400"></i>
+            <span class="font-medium">My Progress</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Course Tree List -->
+      <div id="courseTree" class="mt-4 border-t border-gray-200 pt-4">
+        <h3 class="px-4 mb-2 text-sm font-semibold text-gray-500 uppercase tracking-wider">
+          All Courses
+        </h3>
+        <ul class="space-y-1 px-2">
+          <!-- Course list will be generated here -->
+        </ul>
+      </div>
     </div>
-    
-    <div id="courses" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 p-6">
+      <!-- Content Pages - Only one will be shown at a time -->
+      
+      <!-- All Courses Page -->
+      <div id="allCoursesPage" class="block">
+        <div class="mb-8 border-b border-gray-200 pb-4">
+          <h1 id="platformTitle" class="text-3xl font-bold text-gray-900">My Courses</h1>
+          <p class="mt-2 text-gray-600">Continue learning where you left off</p>
+        </div>
+        
+        <div id="courses" class="grid grid-cols-1 md:grid-cols-2 gap-8"></div>
+      </div>
+      
+      <!-- My Progress Page -->
+      <div id="myProgressPage" class="hidden">
+        <div class="mb-8 border-b border-gray-200 pb-4">
+          <h1 class="text-3xl font-bold text-gray-900">My Learning Progress</h1>
+          <p class="mt-2 text-gray-600">Track your course completion and achievements</p>
+        </div>
+        
+        <div id="progressStats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <!-- Progress statistics cards -->
+          <div class="bg-white p-6 rounded-lg shadow border border-gray-200">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-500">Courses in Progress</p>
+                <h3 id="coursesInProgressCount" class="text-3xl font-bold text-gray-900">0</h3>
+              </div>
+              <div class="bg-blue-100 p-3 rounded-full">
+                <i class="fas fa-book text-blue-500 text-xl"></i>
+              </div>
+            </div>
+          </div>
+          
+          <div class="bg-white p-6 rounded-lg shadow border border-gray-200">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-500">Lessons Completed</p>
+                <h3 id="lessonsCompletedCount" class="text-3xl font-bold text-gray-900">0</h3>
+              </div>
+              <div class="bg-green-100 p-3 rounded-full">
+                <i class="fas fa-check-circle text-green-500 text-xl"></i>
+              </div>
+            </div>
+          </div>
+          
+          <div class="bg-white p-6 rounded-lg shadow border border-gray-200">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-500">Overall Progress</p>
+                <h3 id="overallProgressPercent" class="text-3xl font-bold text-gray-900">0%</h3>
+              </div>
+              <div class="bg-purple-100 p-3 rounded-full">
+                <i class="fas fa-chart-pie text-brand-purple text-xl"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div id="courseProgressList" class="space-y-6">
+          <!-- Course progress details will be rendered here -->
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Video Modal -->
@@ -361,12 +452,13 @@
     }
 
     function createCourseCard(course) {
+      const courseCard = document.createElement('div');
+      courseCard.className = "bg-white rounded-lg shadow-md overflow-hidden flex flex-col course-card border border-gray-200";
+      courseCard.dataset.courseId = course.id;
+
       const completedLessons = getCompletedLessons(course);
       const progress = calculateCourseProgress(course);
       const isInProgress = progress > 0;
-      
-      const courseCard = document.createElement('div');
-      courseCard.className = "bg-white rounded-lg shadow-md overflow-hidden flex flex-col course-card border border-gray-200";
       
       const img = document.createElement('img');
       img.src = course.image;
@@ -960,13 +1052,222 @@
       }
     }
 
+    function populateCourseTree() {
+      const courseTreeList = document.querySelector('#courseTree ul');
+      courseTreeList.innerHTML = '';
+      
+      courses.forEach(course => {
+        const li = document.createElement('li');
+        
+        const courseButton = document.createElement('button');
+        courseButton.className = "flex items-center w-full px-2 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-100 group text-left";
+        courseButton.innerHTML = `
+          <i class="fas fa-graduation-cap mr-2 text-brand-purple"></i>
+          <span class="truncate">${course.title}</span>
+        `;
+        
+        courseButton.addEventListener('click', () => {
+          // Scroll to the course card
+          const courseCards = document.querySelectorAll('.course-card');
+          courseCards.forEach(card => {
+            if (card.dataset.courseId === course.id) {
+              card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              // Add highlight effect
+              card.classList.add('ring-2', 'ring-brand-purple');
+              setTimeout(() => {
+                card.classList.remove('ring-2', 'ring-brand-purple');
+              }, 2000);
+            }
+          });
+          
+          // Make sure we're on the courses page
+          showAllCourses();
+        });
+        
+        li.appendChild(courseButton);
+        courseTreeList.appendChild(li);
+      });
+    }
+    
+    function renderProgressPage() {
+      // Count courses in progress
+      let coursesInProgress = 0;
+      let lessonsCompleted = 0;
+      let totalLessons = 0;
+      
+      // Reset the progress list
+      const courseProgressList = document.getElementById('courseProgressList');
+      courseProgressList.innerHTML = '';
+      
+      // Process each course
+      courses.forEach(course => {
+        totalLessons += course.lessons.length;
+        
+        const completedLessons = getCompletedLessons(course);
+        lessonsCompleted += completedLessons.length;
+        
+        const progress = calculateCourseProgress(course);
+        if (progress > 0 && progress < 100) {
+          coursesInProgress++;
+        }
+        
+        // Create course progress card
+        const courseCard = document.createElement('div');
+        courseCard.className = "bg-white p-6 rounded-lg shadow border border-gray-200";
+        
+        const header = document.createElement('div');
+        header.className = "flex justify-between items-center mb-4";
+        
+        const title = document.createElement('h3');
+        title.className = "text-lg font-bold text-gray-800";
+        title.textContent = course.title;
+        
+        const progressText = document.createElement('span');
+        progressText.className = "text-sm font-medium";
+        
+        if (progress === 100) {
+          progressText.className += " text-green-600";
+          progressText.textContent = "Completed";
+        } else if (progress > 0) {
+          progressText.className += " text-blue-600";
+          progressText.textContent = `${progress.toFixed(0)}% complete`;
+        } else {
+          progressText.className += " text-gray-500";
+          progressText.textContent = "Not started";
+        }
+        
+        header.appendChild(title);
+        header.appendChild(progressText);
+        
+        const progressBarContainer = document.createElement('div');
+        progressBarContainer.className = "w-full bg-gray-200 rounded-full h-2.5 mb-4";
+        
+        const progressFill = document.createElement('div');
+        progressFill.className = `bg-brand-purple h-2.5 rounded-full ${progress > 0 && progress < 100 ? 'progress-bar-animated' : ''}`;
+        progressFill.style.width = `${progress}%`;
+        
+        progressBarContainer.appendChild(progressFill);
+        
+        const lessonList = document.createElement('div');
+        lessonList.className = "mt-4 space-y-2 text-sm";
+        
+        course.lessons.forEach(lesson => {
+          const isDone = isCompleted(lesson.id);
+          const lessonProgress = (getStoredProgress(lesson.id) || 0) * 100;
+          
+          const lessonRow = document.createElement('div');
+          lessonRow.className = "flex items-center justify-between";
+          
+          const lessonTitle = document.createElement('div');
+          lessonTitle.className = "flex items-center";
+          
+          if (isDone) {
+            lessonTitle.innerHTML = `<i class="fas fa-check-circle text-green-500 mr-2"></i> ${lesson.title}`;
+          } else if (lessonProgress > 0) {
+            lessonTitle.innerHTML = `<i class="fas fa-play-circle text-blue-500 mr-2"></i> ${lesson.title}`;
+          } else {
+            lessonTitle.innerHTML = `<i class="fas fa-circle text-gray-300 mr-2"></i> ${lesson.title}`;
+          }
+          
+          const lessonStatus = document.createElement('div');
+          if (isDone) {
+            lessonStatus.className = "text-green-600";
+            lessonStatus.textContent = "Completed";
+          } else if (lessonProgress > 0) {
+            lessonStatus.className = "text-blue-600";
+            lessonStatus.textContent = `${lessonProgress.toFixed(0)}%`;
+          } else {
+            lessonStatus.className = "text-gray-500";
+            lessonStatus.textContent = "Not started";
+          }
+          
+          lessonRow.appendChild(lessonTitle);
+          lessonRow.appendChild(lessonStatus);
+          
+          lessonList.appendChild(lessonRow);
+        });
+        
+        courseCard.appendChild(header);
+        courseCard.appendChild(progressBarContainer);
+        courseCard.appendChild(lessonList);
+        
+        courseProgressList.appendChild(courseCard);
+      });
+      
+      // Update stats
+      document.getElementById('coursesInProgressCount').textContent = coursesInProgress;
+      document.getElementById('lessonsCompletedCount').textContent = lessonsCompleted;
+      
+      const overallPercent = totalLessons > 0 ? ((lessonsCompleted / totalLessons) * 100).toFixed(0) : 0;
+      document.getElementById('overallProgressPercent').textContent = `${overallPercent}%`;
+    }
+    
+    function showAllCourses() {
+      // Update active state in nav
+      document.getElementById('showAllCoursesBtn').classList.add('active-nav-item', 'text-gray-900');
+      document.getElementById('showAllCoursesBtn').classList.remove('text-gray-600');
+      document.getElementById('showAllCoursesBtn').querySelector('i').classList.add('text-brand-purple');
+      document.getElementById('showAllCoursesBtn').querySelector('i').classList.remove('text-gray-400');
+      
+      document.getElementById('showMyProgressBtn').classList.remove('active-nav-item', 'text-gray-900');
+      document.getElementById('showMyProgressBtn').classList.add('text-gray-600');
+      document.getElementById('showMyProgressBtn').querySelector('i').classList.remove('text-brand-purple');
+      document.getElementById('showMyProgressBtn').querySelector('i').classList.add('text-gray-400');
+      
+      // Show/hide pages
+      document.getElementById('allCoursesPage').classList.remove('hidden');
+      document.getElementById('allCoursesPage').classList.add('block');
+      document.getElementById('myProgressPage').classList.remove('block');
+      document.getElementById('myProgressPage').classList.add('hidden');
+    }
+    
+    function showMyProgress() {
+      // Update active state in nav
+      document.getElementById('showMyProgressBtn').classList.add('active-nav-item', 'text-gray-900');
+      document.getElementById('showMyProgressBtn').classList.remove('text-gray-600');
+      document.getElementById('showMyProgressBtn').querySelector('i').classList.add('text-brand-purple');
+      document.getElementById('showMyProgressBtn').querySelector('i').classList.remove('text-gray-400');
+      
+      document.getElementById('showAllCoursesBtn').classList.remove('active-nav-item', 'text-gray-900');
+      document.getElementById('showAllCoursesBtn').classList.add('text-gray-600');
+      document.getElementById('showAllCoursesBtn').querySelector('i').classList.remove('text-brand-purple');
+      document.getElementById('showAllCoursesBtn').querySelector('i').classList.add('text-gray-400');
+      
+      // Show/hide pages
+      document.getElementById('myProgressPage').classList.remove('hidden');
+      document.getElementById('myProgressPage').classList.add('block');
+      document.getElementById('allCoursesPage').classList.remove('block');
+      document.getElementById('allCoursesPage').classList.add('hidden');
+      
+      // Render progress data
+      renderProgressPage();
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('navTitle').textContent = platformConfig.title;
       document.getElementById('platformTitle').textContent = platformConfig.pageTitle;
       document.title = platformConfig.title;
       
+      // Set up navigation buttons
+      document.getElementById('showAllCoursesBtn').addEventListener('click', showAllCourses);
+      document.getElementById('showMyProgressBtn').addEventListener('click', showMyProgress);
+      
+      // Populate course tree
+      populateCourseTree();
+      
       setupSearch(); // Initialize search functionality
       renderCourses();
+      
+      // Add active-nav-item styling
+      document.head.insertAdjacentHTML('beforeend', `
+        <style>
+          .active-nav-item {
+            background-color: #f3f4f6;
+            font-weight: 600;
+            color: #111827 !important;
+          }
+        </style>
+      `);
     });
 
     renderCourses();
