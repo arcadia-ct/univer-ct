@@ -30,6 +30,8 @@
   <style>
     .course-card {
       transition: all 0.2s ease-in-out;
+      display: flex;
+      flex-direction: column;
     }
     .course-card:hover {
       transform: translateY(-4px);
@@ -58,6 +60,85 @@
     }
     .lesson-icon {
       transition: transform 0.2s ease;
+    }
+
+    /* Custom scrollbar styles */
+    .overflow-y-auto::-webkit-scrollbar {
+      width: 6px;
+      display: block; /* Ensure scrollbar is always visible */
+    }
+
+    .overflow-y-auto::-webkit-scrollbar-track {
+      background: #f3f4f6;
+      border-radius: 8px;
+    }
+
+    .overflow-y-auto::-webkit-scrollbar-thumb {
+      background-color: #d1d5db;
+      border-radius: 8px;
+    }
+
+    .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+      background-color: #a435f0;
+    }
+
+    /* Add this new class to force scrollbars to display */
+    .scrollbar-visible {
+      overflow-y: scroll !important; /* Force showing scrollbar */
+      scrollbar-width: thin !important;
+      scrollbar-color: #a435f0 #f3f4f6 !important;
+    }
+
+    /* Ensure webkit browsers also show scrollbars */
+    .scrollbar-visible::-webkit-scrollbar {
+      width: 6px !important;
+      display: block !important; /* Ensure scrollbar is always visible */
+    }
+
+    .scrollbar-visible::-webkit-scrollbar-track {
+      background: #f3f4f6 !important;
+      border-radius: 8px !important;
+    }
+
+    .scrollbar-visible::-webkit-scrollbar-thumb {
+      background-color: #d1d5db !important;
+      border-radius: 8px !important;
+    }
+
+    .scrollbar-visible::-webkit-scrollbar-thumb:hover {
+      background-color: #a435f0 !important;
+    }
+
+    /* Force scrollbar to always show */
+    .always-show-scrollbar {
+      overflow-y: scroll !important;
+      height: 12rem !important;
+      min-height: 12rem !important;
+      border: 1px solid #e5e7eb !important;
+      border-radius: 0.375rem !important;
+      padding: 0.5rem !important;
+    }
+
+    /* For WebKit browsers (Chrome, Safari, Edge) */
+    .always-show-scrollbar::-webkit-scrollbar {
+      width: 6px !important;
+      display: block !important;
+    }
+
+    .always-show-scrollbar::-webkit-scrollbar-track {
+      background: #f3f4f6 !important;
+      border-radius: 6px !important;
+    }
+
+    .always-show-scrollbar::-webkit-scrollbar-thumb {
+      background: #a435f0 !important;
+      border-radius: 6px !important;
+    }
+
+    /* For Firefox */
+    .always-show-scrollbar {
+      scrollbar-width: thin !important;
+      scrollbar-color: #a435f0 #f3f4f6 !important;
     }
   </style>
 </head>
@@ -346,12 +427,52 @@
       const divider = document.createElement('hr');
       divider.className = "border-gray-200 mb-4";
       
-      const lessonsList = document.createElement('div');
-      lessonsList.className = "space-y-2";
+      const lessonsContainer = document.createElement('div');
+      lessonsContainer.className = "relative";
       
+      const lessonsHeader = document.createElement('div');
+      lessonsHeader.className = "flex justify-between items-center mb-3";
+      
+      const lessonsTitle = document.createElement('h3');
+      lessonsTitle.className = "font-semibold text-gray-700";
+      lessonsTitle.textContent = "Course Content";
+      
+      const lessonsCount = document.createElement('span');
+      lessonsCount.className = "text-xs text-gray-500";
+      lessonsCount.textContent = `${course.lessons.length} lessons`;
+      
+      lessonsHeader.appendChild(lessonsTitle);
+      lessonsHeader.appendChild(lessonsCount);
+      
+      const lessonsList = document.createElement('div');
+      lessonsList.className = "space-y-2 pr-1 max-h-48 always-show-scrollbar";
+
+      // Set fixed height and forced scrollbars with inline styles
+      lessonsList.style.overflowY = "scroll";
+      lessonsList.style.height = "12rem";
+      lessonsList.style.border = "1px solid #e5e7eb";
+      lessonsList.style.borderRadius = "0.375rem";
+      lessonsList.style.padding = "0.5rem";
+
+      // Force Firefox scrollbar
+      lessonsList.style.scrollbarWidth = "thin";
+      lessonsList.style.scrollbarColor = "#a435f0 #f3f4f6";
+
+      // Add enough lessons to demonstrate scrolling
       course.lessons.forEach(lesson => {
         lessonsList.appendChild(createLessonButton(lesson));
       });
+
+      // For browsers that don't show scrollbars by default, add a min-content to ensure they appear
+      if (course.lessons.length < 3) {
+        // Add some padding/spacing at the bottom to ensure scrollbar shows
+        const spacer = document.createElement('div');
+        spacer.style.height = "4rem";
+        lessonsList.appendChild(spacer);
+      }
+      
+      lessonsContainer.appendChild(lessonsHeader);
+      lessonsContainer.appendChild(lessonsList);
       
       content.appendChild(title);
       content.appendChild(instructor);
@@ -360,7 +481,7 @@
       content.appendChild(divider);
       content.appendChild(progressContainer);
       content.appendChild(stats);
-      content.appendChild(lessonsList);
+      content.appendChild(lessonsContainer);
       
       courseCard.appendChild(img);
       courseCard.appendChild(content);
