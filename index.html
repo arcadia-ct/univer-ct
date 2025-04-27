@@ -169,6 +169,69 @@
     #expandButton.visible {
       display: block;
     }
+
+    /* Course tree styles */
+    .course-tree-item {
+      border-radius: 0.375rem;
+      transition: all 0.2s ease;
+    }
+
+    .course-tree-item.enrolled {
+      border-left: 3px solid #a435f0;
+    }
+
+    .course-tree-toggle {
+      transition: transform 0.2s ease;
+    }
+
+    .course-tree-toggle.rotated {
+      transform: rotate(90deg);
+    }
+
+    .course-tree-lessons {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+
+    .course-tree-lessons.expanded {
+      max-height: 500px;
+    }
+
+    .course-tree-lesson {
+      padding-left: 1.75rem;
+      margin-top: 0.25rem;
+      font-size: 0.875rem;
+      border-radius: 0.25rem;
+    }
+
+    .course-tree-progress {
+      height: 4px;
+      background-color: #e5e7eb;
+      border-radius: 9999px;
+      overflow: hidden;
+    }
+
+    .course-tree-progress-bar {
+      height: 100%;
+      border-radius: 9999px;
+    }
+
+    .course-filter-badge {
+      font-size: 0.65rem;
+      padding: 0.125rem 0.375rem;
+      border-radius: 9999px;
+    }
+
+    .course-filter-badge.active {
+      color: white;
+      background-color: #a435f0;
+    }
+
+    .course-filter-badge:not(.active) {
+      color: #6b7280;
+      background-color: #f3f4f6;
+    }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans">
@@ -229,12 +292,38 @@
 
       <!-- Course Tree List -->
       <div id="courseTree" class="mt-4 border-t border-gray-200 pt-4">
-        <h3 class="px-4 mb-2 text-sm font-semibold text-gray-500 uppercase tracking-wider">
-          All Courses
-        </h3>
-        <ul class="space-y-1 px-2">
-          <!-- Course list will be generated here -->
-        </ul>
+        <div class="flex items-center justify-between px-4 mb-3">
+          <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+            Courses
+          </h3>
+          <div class="flex items-center space-x-1">
+            <button id="filterAllCourses" class="course-filter-badge active">All</button>
+            <button id="filterEnrolledCourses" class="course-filter-badge">Enrolled</button>
+          </div>
+        </div>
+        
+        <div class="px-2 mb-2">
+          <div class="relative">
+            <input 
+              id="courseTreeSearch" 
+              type="text" 
+              placeholder="Filter courses..." 
+              class="w-full py-1 px-2 pl-7 text-sm border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-purple focus:border-brand-purple"
+            >
+            <div class="absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none">
+              <i class="fas fa-search text-gray-400 text-xs"></i>
+            </div>
+            <button id="clearTreeSearch" class="absolute inset-y-0 right-0 flex items-center pr-2 text-gray-400 hover:text-gray-600 hidden">
+              <i class="fas fa-times text-xs"></i>
+            </button>
+          </div>
+        </div>
+        
+        <div class="space-y-1 px-2 overflow-y-auto" style="max-height: calc(100vh - 13rem);">
+          <ul id="courseTreeList" class="space-y-1">
+            <!-- Course tree will be generated here -->
+          </ul>
+        </div>
       </div>
     </div>
 
@@ -1356,38 +1445,207 @@
     }
 
     function populateCourseTree() {
-      const courseTreeList = document.querySelector('#courseTree ul');
+      const courseTreeList = document.getElementById('courseTreeList');
       courseTreeList.innerHTML = '';
+
+      // Get current filter settings
+      const showOnlyEnrolled = localStorage.getItem('courseTreeFilter') === 'enrolled';
       
-      courses.forEach(course => {
-        const li = document.createElement('li');
-        
-        const courseButton = document.createElement('button');
-        courseButton.className = "flex items-center w-full px-2 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-100 group text-left";
-        courseButton.innerHTML = `
-          <i class="fas fa-graduation-cap mr-2 text-brand-purple"></i>
-          <span class="truncate">${course.title}</span>
+      // Get all courses based on filter
+      let displayCourses = [...courses];
+      if (showOnlyEnrolled) {
+        displayCourses = courses.filter(course => checkEnrollmentStatus(course.id));
+      }
+      
+      // If empty after filtering
+      if (displayCourses.length === 0) {
+        const emptyState = document.createElement('div');
+        emptyState.className = "text-center py-4 text-sm text-gray-500";
+        emptyState.innerHTML = `
+          <i class="fas fa-folder-open text-gray-400 text-2xl mb-2"></i>
+          <p>No courses found</p>
         `;
+        courseTreeList.appendChild(emptyState);
+        return;
+      }
+
+      // Create DOM elements for each course
+      displayCourses.forEach(course => {
+        const isEnrolled = checkEnrollmentStatus(course.id);
+        const progress = calculateCourseProgress(course);
+        const completedLessons = getCompletedLessons(course);
         
-        courseButton.addEventListener('click', () => {
-          // Scroll to the course card
+        // Course item
+        const li = document.createElement('li');
+        li.className = `course-tree-item mb-2 overflow-hidden ${isEnrolled ? 'enrolled pl-2' : 'pl-2'}`;
+        li.dataset.courseId = course.id;
+        
+        // Course header
+        const courseHeader = document.createElement('div');
+        courseHeader.className = "flex items-center justify-between py-2 px-1 hover:bg-gray-50 rounded cursor-pointer";
+        
+        // Left side with toggle
+        const leftSide = document.createElement('div');
+        leftSide.className = "flex items-center flex-grow min-w-0";
+        
+        const toggleIcon = document.createElement('span');
+        toggleIcon.className = "course-tree-toggle text-gray-400 mr-2";
+        toggleIcon.innerHTML = '<i class="fas fa-chevron-right"></i>';
+        
+        const courseIcon = document.createElement('span');
+        courseIcon.className = "mr-2";
+        courseIcon.innerHTML = `<i class="fas fa-book ${isEnrolled ? 'text-brand-purple' : 'text-gray-400'}"></i>`;
+        
+        const courseTitle = document.createElement('span');
+        courseTitle.className = "truncate font-medium text-sm";
+        courseTitle.textContent = course.title;
+        
+        leftSide.appendChild(toggleIcon);
+        leftSide.appendChild(courseIcon);
+        leftSide.appendChild(courseTitle);
+        
+        // Right side with progress/status
+        const rightSide = document.createElement('div');
+        rightSide.className = "flex items-center";
+        
+        // Status badges
+        if (isEnrolled) {
+          let statusBadge;
+          if (progress === 100) {
+            statusBadge = document.createElement('span');
+            statusBadge.className = "text-xs px-1.5 py-0.5 bg-green-100 text-green-800 rounded-full";
+            statusBadge.textContent = "Completed";
+          } else if (progress > 0) {
+            statusBadge = document.createElement('span');
+            statusBadge.className = "text-xs px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded-full";
+            statusBadge.textContent = `${progress.toFixed(0)}%`;
+          } else {
+            statusBadge = document.createElement('span');
+            statusBadge.className = "text-xs px-1.5 py-0.5 bg-gray-100 text-gray-800 rounded-full";
+            statusBadge.textContent = "Not started";
+          }
+          rightSide.appendChild(statusBadge);
+        } else {
+          const enrollBtn = document.createElement('button');
+          enrollBtn.className = "text-xs px-1.5 py-0.5 bg-brand-purple bg-opacity-10 text-brand-purple rounded-full hover:bg-opacity-20";
+          enrollBtn.textContent = "Enroll";
+          enrollBtn.onclick = (e) => {
+            e.stopPropagation();
+            enrollInCourse(course.id);
+          };
+          rightSide.appendChild(enrollBtn);
+        }
+        
+        courseHeader.appendChild(leftSide);
+        courseHeader.appendChild(rightSide);
+        
+        // Progress bar (only for enrolled courses)
+        let progressBar;
+        if (isEnrolled) {
+          progressBar = document.createElement('div');
+          progressBar.className = "course-tree-progress mt-1 mb-2 mx-1";
+          
+          const progressFill = document.createElement('div');
+          progressFill.className = `course-tree-progress-bar ${progress === 100 ? 'bg-green-500' : 'bg-brand-purple'}`;
+          progressFill.style.width = `${progress}%`;
+          
+          progressBar.appendChild(progressFill);
+        }
+        
+        // Lessons container (initially hidden)
+        const lessonsContainer = document.createElement('div');
+        lessonsContainer.className = "course-tree-lessons ml-4";
+        
+        // Create lesson items
+        course.lessons.forEach(lesson => {
+          const lessonCompleted = isLessonCompleted(course.id, lesson.id);
+          const lessonProgress = getStoredProgress(course.id, lesson.id) * 100;
+          const lessonStarted = lessonProgress > 0 && !lessonCompleted;
+          
+          const lessonItem = document.createElement('div');
+          lessonItem.className = `course-tree-lesson flex items-center justify-between py-1.5 px-2 hover:bg-gray-50 ${!isEnrolled ? 'opacity-50' : ''}`;
+          lessonItem.dataset.lessonId = lesson.id;
+          
+          // Lesson title with status icon
+          const lessonLeft = document.createElement('div');
+          lessonLeft.className = "flex items-center flex-grow min-w-0";
+          
+          let statusIcon;
+          if (lessonCompleted) {
+            statusIcon = '<i class="fas fa-check-circle text-green-500 mr-2"></i>';
+          } else if (lessonStarted) {
+            statusIcon = '<i class="fas fa-play-circle text-blue-500 mr-2"></i>';
+          } else {
+            statusIcon = '<i class="fas fa-circle text-gray-300 mr-2"></i>';
+          }
+          
+          lessonLeft.innerHTML = `${statusIcon}<span class="truncate text-sm">${lesson.title}</span>`;
+          
+          // Progress percentage for in-progress lessons
+          const lessonRight = document.createElement('div');
+          if (lessonStarted && !lessonCompleted) {
+            lessonRight.className = "text-xs text-blue-600";
+            lessonRight.textContent = `${lessonProgress.toFixed(0)}%`;
+          } else if (lessonCompleted) {
+            lessonRight.className = "text-xs text-green-600";
+            lessonRight.innerHTML = '<i class="fas fa-check"></i>';
+          }
+          
+          lessonItem.appendChild(lessonLeft);
+          lessonItem.appendChild(lessonRight);
+          
+          // Add click handler to open the lesson
+          if (isEnrolled) {
+            lessonItem.classList.add('cursor-pointer');
+            lessonItem.addEventListener('click', () => {
+              const lessonObj = course.lessons.find(l => l.id === lesson.id);
+              if (lessonObj) {
+                openVideo(lessonObj);
+              }
+            });
+          } else {
+            lessonItem.addEventListener('click', (e) => {
+              e.preventDefault();
+              showToast('Please enroll in this course to access lessons', 'warning');
+            });
+          }
+          
+          lessonsContainer.appendChild(lessonItem);
+        });
+        
+        // Add toggle functionality
+        courseHeader.addEventListener('click', () => {
+          toggleIcon.classList.toggle('rotated');
+          lessonsContainer.classList.toggle('expanded');
+          
+          // Scroll to course card when clicked
           const courseCards = document.querySelectorAll('.course-card');
           courseCards.forEach(card => {
             if (card.dataset.courseId === course.id) {
-              card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              // Add highlight effect
-              card.classList.add('ring-2', 'ring-brand-purple');
-              setTimeout(() => {
-                card.classList.remove('ring-2', 'ring-brand-purple');
-              }, 2000);
+              // Only scroll to card if lessons are being collapsed or we're on the all courses page
+              if (!lessonsContainer.classList.contains('expanded') || !document.getElementById('myProgressPage').classList.contains('block')) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Add highlight effect
+                card.classList.add('ring-2', 'ring-brand-purple');
+                setTimeout(() => {
+                  card.classList.remove('ring-2', 'ring-brand-purple');
+                }, 2000);
+              }
             }
           });
           
           // Make sure we're on the courses page
-          showAllCourses();
+          if (!document.getElementById('myProgressPage').classList.contains('block')) {
+            showAllCourses();
+          }
         });
         
-        li.appendChild(courseButton);
+        li.appendChild(courseHeader);
+        if (isEnrolled && progressBar) {
+          li.appendChild(progressBar);
+        }
+        li.appendChild(lessonsContainer);
+        
         courseTreeList.appendChild(li);
       });
     }
@@ -1608,6 +1866,101 @@
       }
     }
 
+    function setupCourseTreeControls() {
+      // Filter buttons
+      const allFilterBtn = document.getElementById('filterAllCourses');
+      const enrolledFilterBtn = document.getElementById('filterEnrolledCourses');
+      
+      // Set initial state from localStorage
+      const currentFilter = localStorage.getItem('courseTreeFilter') || 'all';
+      if (currentFilter === 'enrolled') {
+        allFilterBtn.classList.remove('active');
+        enrolledFilterBtn.classList.add('active');
+      } else {
+        allFilterBtn.classList.add('active');
+        enrolledFilterBtn.classList.remove('active');
+      }
+      
+      // All courses filter
+      allFilterBtn.addEventListener('click', () => {
+        allFilterBtn.classList.add('active');
+        enrolledFilterBtn.classList.remove('active');
+        localStorage.setItem('courseTreeFilter', 'all');
+        populateCourseTree();
+      });
+      
+      // Enrolled courses filter
+      enrolledFilterBtn.addEventListener('click', () => {
+        enrolledFilterBtn.classList.add('active');
+        allFilterBtn.classList.remove('active');
+        localStorage.setItem('courseTreeFilter', 'enrolled');
+        populateCourseTree();
+      });
+      
+      // Course tree search
+      const searchInput = document.getElementById('courseTreeSearch');
+      const clearBtn = document.getElementById('clearTreeSearch');
+      
+      searchInput.addEventListener('input', () => {
+        const searchText = searchInput.value.toLowerCase();
+        
+        // Toggle clear button
+        if (searchText.length > 0) {
+          clearBtn.classList.remove('hidden');
+        } else {
+          clearBtn.classList.add('hidden');
+        }
+        
+        // Apply search filter
+        filterCourseTree(searchText);
+      });
+      
+      clearBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        clearBtn.classList.add('hidden');
+        filterCourseTree('');
+        searchInput.focus();
+      });
+    }
+
+    function filterCourseTree(query) {
+      const courseItems = document.querySelectorAll('#courseTreeList > li');
+      
+      courseItems.forEach(courseItem => {
+        const courseTitle = courseItem.querySelector('.course-tree-item > div > div > span:nth-child(3)').textContent.toLowerCase();
+        const lessonItems = courseItem.querySelectorAll('.course-tree-lesson');
+        let courseMatches = courseTitle.includes(query);
+        let lessonMatches = false;
+        
+        // Check lesson titles
+        lessonItems.forEach(lessonItem => {
+          const lessonText = lessonItem.querySelector('span').textContent.toLowerCase();
+          if (lessonText.includes(query)) {
+            lessonItem.classList.add('bg-gray-50');
+            lessonMatches = true;
+          } else {
+            lessonItem.classList.remove('bg-gray-50');
+          }
+        });
+        
+        // Show/hide course based on matches
+        if (courseMatches || lessonMatches || query === '') {
+          courseItem.classList.remove('hidden');
+          
+          // Expand course if there's a match and we're searching
+          if (query !== '' && lessonMatches) {
+            const toggleIcon = courseItem.querySelector('.course-tree-toggle');
+            const lessonsContainer = courseItem.querySelector('.course-tree-lessons');
+            
+            toggleIcon.classList.add('rotated');
+            lessonsContainer.classList.add('expanded');
+          }
+        } else {
+          courseItem.classList.add('hidden');
+        }
+      });
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('navTitle').textContent = platformConfig.title;
       document.getElementById('platformTitle').textContent = platformConfig.pageTitle;
@@ -1636,6 +1989,9 @@
 
       // Add this line:
       setupSidebarToggle();
+
+      // Set up course tree controls
+      setupCourseTreeControls();
     });
   </script>
 </body>
