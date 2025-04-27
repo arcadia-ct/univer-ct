@@ -140,6 +140,35 @@
       scrollbar-width: thin !important;
       scrollbar-color: #a435f0 #f3f4f6 !important;
     }
+
+    /* Sidebar collapse/expand styles */
+    #sidebar {
+      transition: width 0.3s ease, min-width 0.3s ease;
+      overflow-x: hidden;
+    }
+    
+    #sidebar.collapsed {
+      width: 0 !important;
+      min-width: 0 !important;
+      border-right: none;
+    }
+    
+    /* Toggle button to reopen sidebar when collapsed */
+    #expandButton {
+      position: fixed;
+      left: 0;
+      top: 5rem;
+      background: white;
+      padding: 0.75rem 0.5rem;
+      border-radius: 0 0.25rem 0.25rem 0;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+      z-index: 40;
+      display: none;
+    }
+    
+    #expandButton.visible {
+      display: block;
+    }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans">
@@ -180,10 +209,22 @@
     </div>
   </nav>
 
+  <!-- Add this after your navigation and before the main content div -->
+  <button id="expandButton" class="text-gray-500 hover:text-brand-purple">
+    <i class="fas fa-chevron-right"></i>
+  </button>
+
   <!-- Main Content with Sidebar -->
   <div class="max-w-7xl mx-auto flex">
     <!-- Left Sidebar -->
     <div id="sidebar" class="w-64 bg-white border-r border-gray-200 h-[calc(100vh-4rem)] sticky top-16 overflow-y-auto">
+      <!-- Add this toggle button at the top -->
+      <div class="flex justify-end p-2">
+        <button id="sidebarToggle" class="text-gray-500 hover:text-brand-purple p-1 rounded-md">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+      </div>
+      
       <div class="p-4">
         <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
           Navigation
@@ -1243,6 +1284,37 @@
       renderProgressPage();
     }
 
+    // Simple sidebar toggle function
+    function setupSidebarToggle() {
+      const sidebar = document.getElementById('sidebar');
+      const sidebarToggle = document.getElementById('sidebarToggle');
+      const expandButton = document.getElementById('expandButton');
+      
+      // Toggle sidebar collapsed state
+      sidebarToggle.addEventListener('click', function() {
+        sidebar.classList.add('collapsed');
+        expandButton.classList.add('visible');
+        
+        // Save state
+        localStorage.setItem('sidebarCollapsed', 'true');
+      });
+      
+      // Expand sidebar when clicking expand button
+      expandButton.addEventListener('click', function() {
+        sidebar.classList.remove('collapsed');
+        expandButton.classList.remove('visible');
+        
+        // Save state
+        localStorage.setItem('sidebarCollapsed', 'false');
+      });
+      
+      // Check for saved state on page load
+      if (localStorage.getItem('sidebarCollapsed') === 'true') {
+        sidebar.classList.add('collapsed');
+        expandButton.classList.add('visible');
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('navTitle').textContent = platformConfig.title;
       document.getElementById('platformTitle').textContent = platformConfig.pageTitle;
@@ -1268,6 +1340,9 @@
           }
         </style>
       `);
+
+      // Add this line:
+      setupSidebarToggle();
     });
 
     renderCourses();
