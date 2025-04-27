@@ -1810,7 +1810,7 @@
           coursesInProgress++;
         }
         
-        // Create course progress card - this remains the same
+        // Create course progress card
         const courseCard = document.createElement('div');
         courseCard.className = "bg-white p-6 rounded-lg shadow border border-gray-200";
         
@@ -1855,7 +1855,15 @@
           const lessonProgress = (getStoredProgress(course.id, lesson.id) || 0) * 100;
           
           const lessonRow = document.createElement('div');
-          lessonRow.className = "flex items-center justify-between";
+          lessonRow.className = "flex items-center justify-between p-2 hover:bg-gray-50 rounded-md cursor-pointer transition-colors";
+          
+          // Add hover effect to indicate clickability
+          lessonRow.style.transition = "background-color 0.15s ease";
+          
+          // Add click handler to open the video modal
+          lessonRow.addEventListener('click', () => {
+            openVideo(lesson);
+          });
           
           const lessonTitle = document.createElement('div');
           lessonTitle.className = "flex items-center";
@@ -1869,16 +1877,27 @@
           }
           
           const lessonStatus = document.createElement('div');
+          lessonStatus.className = "flex items-center";
+          
+          const statusText = document.createElement('span');
           if (isDone) {
-            lessonStatus.className = "text-green-600";
-            lessonStatus.textContent = "Completed";
+            statusText.className = "text-green-600";
+            statusText.textContent = "Completed";
           } else if (lessonProgress > 0) {
-            lessonStatus.className = "text-blue-600";
-            lessonStatus.textContent = `${lessonProgress.toFixed(0)}%`;
+            statusText.className = "text-blue-600";
+            statusText.textContent = `${lessonProgress.toFixed(0)}%`;
           } else {
-            lessonStatus.className = "text-gray-500";
-            lessonStatus.textContent = "Not started";
+            statusText.className = "text-gray-500";
+            statusText.textContent = "Not started";
           }
+          
+          // Add a play button to make it more obvious that it's clickable
+          const playIcon = document.createElement('span');
+          playIcon.className = "ml-2 text-brand-purple";
+          playIcon.innerHTML = '<i class="fas fa-play"></i>';
+          
+          lessonStatus.appendChild(statusText);
+          lessonStatus.appendChild(playIcon);
           
           lessonRow.appendChild(lessonTitle);
           lessonRow.appendChild(lessonStatus);
