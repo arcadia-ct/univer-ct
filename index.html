@@ -4,1145 +4,1739 @@
   <meta charset="UTF-8">
   <title>Learning Platform</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: {
-            primary: {
-              50: '#f0f9ff',
-              100: '#e0f2fe',
-              500: '#0284c7',
-              600: '#0369a1',
-              700: '#075985',
-            },
-            brand: {
-              purple: '#a435f0',
-              dark: '#2d2f31',
-              light: '#1e1e1c',
-            }
-          },
-        },
-      },
+            'brand-purple': '#6a44d9',
+          }
+        }
+      }
     }
   </script>
   <style>
-    .course-card {
-      transition: all 0.2s ease-in-out;
-      display: flex;
-      flex-direction: column;
-    }
-    .course-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-    }
-    .progress-bar-animated {
-      background-size: 30px 30px;
-      background-image: linear-gradient(
-        45deg,
-        rgba(255, 255, 255, 0.15) 25%,
-        transparent 25%,
-        transparent 50%,
-        rgba(255, 255, 255, 0.15) 50%,
-        rgba(255, 255, 255, 0.15) 75%,
-        transparent 75%,
-        transparent
-      );
-      animation: progress-bar-stripes 1s linear infinite;
-    }
-    @keyframes progress-bar-stripes {
-      from { background-position: 30px 0; }
-      to { background-position: 0 0; }
-    }
-    .lesson-button:hover .lesson-icon {
-      transform: translateX(4px);
-    }
-    .lesson-icon {
-      transition: transform 0.2s ease;
-    }
-
-    /* Custom scrollbar styles */
-    .overflow-y-auto::-webkit-scrollbar {
-      width: 6px;
-      display: block; /* Ensure scrollbar is always visible */
-    }
-
-    .overflow-y-auto::-webkit-scrollbar-track {
-      background: #f3f4f6;
-      border-radius: 8px;
-    }
-
-    .overflow-y-auto::-webkit-scrollbar-thumb {
-      background-color: #d1d5db;
-      border-radius: 8px;
-    }
-
-    .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-      background-color: #a435f0;
-    }
-
-    /* Add this new class to force scrollbars to display */
-    .scrollbar-visible {
-      overflow-y: scroll !important; /* Force showing scrollbar */
-      scrollbar-width: thin !important;
-      scrollbar-color: #a435f0 #f3f4f6 !important;
-    }
-
-    /* Ensure webkit browsers also show scrollbars */
-    .scrollbar-visible::-webkit-scrollbar {
-      width: 6px !important;
-      display: block !important; /* Ensure scrollbar is always visible */
-    }
-
-    .scrollbar-visible::-webkit-scrollbar-track {
-      background: #f3f4f6 !important;
-      border-radius: 8px !important;
-    }
-
-    .scrollbar-visible::-webkit-scrollbar-thumb {
-      background-color: #d1d5db !important;
-      border-radius: 8px !important;
-    }
-
-    .scrollbar-visible::-webkit-scrollbar-thumb:hover {
-      background-color: #a435f0 !important;
-    }
-
-    /* Force scrollbar to always show */
-    .always-show-scrollbar {
-      overflow-y: scroll !important;
-      height: 12rem !important;
-      min-height: 12rem !important;
-      border: 1px solid #e5e7eb !important;
-      border-radius: 0.375rem !important;
-      padding: 0.5rem !important;
-    }
-
-    /* For WebKit browsers (Chrome, Safari, Edge) */
-    .always-show-scrollbar::-webkit-scrollbar {
-      width: 6px !important;
-      display: block !important;
-    }
-
-    .always-show-scrollbar::-webkit-scrollbar-track {
-      background: #f3f4f6 !important;
-      border-radius: 6px !important;
-    }
-
-    .always-show-scrollbar::-webkit-scrollbar-thumb {
-      background: #a435f0 !important;
-      border-radius: 6px !important;
-    }
-
-    /* For Firefox */
-    .always-show-scrollbar {
-      scrollbar-width: thin !important;
-      scrollbar-color: #a435f0 #f3f4f6 !important;
-    }
-
-    /* Sidebar collapse/expand styles */
-    #sidebar {
-      transition: width 0.3s ease, min-width 0.3s ease;
-      overflow-x: hidden;
+    .active-nav-item {
+      background-color: #f3f4f6;
+      color: #6a44d9;
     }
     
-    #sidebar.collapsed {
-      width: 0 !important;
-      min-width: 0 !important;
-      border-right: none;
+    .course-filter-badge {
+      font-size: 0.75rem;
+      padding: 0.125rem 0.375rem;
+      border-radius: 9999px;
+      background-color: #f3f4f6;
+      color: #4b5563;
     }
     
-    /* Toggle button to reopen sidebar when collapsed */
-    #expandButton {
-      position: fixed;
-      left: 0;
-      top: 5rem;
-      background: white;
-      padding: 0.75rem 0.5rem;
-      border-radius: 0 0.25rem 0.25rem 0;
-      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-      z-index: 40;
-      display: none;
+    .course-filter-badge.active {
+      background-color: #6a44d9;
+      color: white;
     }
     
-    #expandButton.visible {
-      display: block;
+    .lesson-completed {
+      border-left: 3px solid #10b981;
     }
-
-    /* Course tree styles */
-    .course-tree-item {
-      border-radius: 0.375rem;
-      transition: all 0.2s ease;
+    
+    .lesson-in-progress {
+      border-left: 3px solid #3b82f6;
     }
-
-    .course-tree-item.enrolled {
-      border-left: 3px solid #a435f0;
-    }
-
-    .course-tree-toggle {
-      transition: transform 0.2s ease;
-    }
-
-    .course-tree-toggle.rotated {
-      transform: rotate(90deg);
-    }
-
-    .course-tree-lessons {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.3s ease;
-    }
-
-    .course-tree-lessons.expanded {
-      max-height: 500px;
-    }
-
-    .course-tree-lesson {
-      padding-left: 1.75rem;
-      margin-top: 0.25rem;
-      font-size: 0.875rem;
-      border-radius: 0.25rem;
-    }
-
-    .course-tree-progress {
-      height: 4px;
+    
+    /* Add progress bar styling */
+    .progress-bar {
+      height: 0.25rem;
       background-color: #e5e7eb;
       border-radius: 9999px;
       overflow: hidden;
     }
-
-    .course-tree-progress-bar {
+    
+    .progress-bar-fill {
       height: 100%;
-      border-radius: 9999px;
+      background-color: #6a44d9;
+      transition: width 0.3s ease;
     }
 
-    .course-filter-badge {
-      font-size: 0.65rem;
-      padding: 0.125rem 0.375rem;
-      border-radius: 9999px;
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
-    .course-filter-badge.active {
-      color: white;
-      background-color: #a435f0;
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
     }
 
-    .course-filter-badge:not(.active) {
-      color: #6b7280;
-      background-color: #f3f4f6;
+    .animate-fade-in {
+      animation: fadeIn 0.3s ease-in-out forwards;
+    }
+
+    .opacity-0 {
+      opacity: 0;
+      transition: opacity 0.3s ease-out;
     }
   </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <!-- Your existing styles & Tailwind config here -->
 </head>
 <body class="bg-gray-50 min-h-screen font-sans">
   <!-- Top Navigation -->
-  <nav class="bg-white shadow-sm border-b border-gray-200">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between h-16">
-        <div class="flex items-center">
-          <span id="brandLogo" class="text-2xl font-bold text-brand-purple">
-            <i class="fas fa-graduation-cap mr-2"></i>
-            <span id="navTitle">Learning Platform</span>
-          </span>
-        </div>
-        
-        <div class="flex items-center">
-          <button class="ml-4 p-2 rounded-full hover:bg-gray-100">
-            <i class="fas fa-user-circle text-gray-500 text-xl"></i>
-          </button>
-        </div>
-      </div>
-    </div>
+  <nav id="main-nav" class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+    <!-- Nav content will be rendered by JavaScript -->
   </nav>
 
-  <!-- Add this after your navigation and before the main content div -->
-  <button id="expandButton" class="text-gray-500 hover:text-brand-purple">
-    <i class="fas fa-chevron-right"></i>
-  </button>
+  <!-- Additional container for width constraints if needed -->
+  <div class="max-w-7xl mx-auto">
+    <div class="flex">
+      <!-- Sidebar Template -->
+      <aside id="sidebar" class="w-64 bg-white border-r border-gray-200 h-[calc(100vh-4rem)] sticky top-16 overflow-y-auto">
+        <!-- Sidebar content will be rendered by JavaScript -->
+      </aside>
 
-  <!-- Main Content with Sidebar -->
-  <div class="max-w-7xl mx-auto flex">
-    <!-- Left Sidebar -->
-    <div id="sidebar" class="w-64 bg-white border-r border-gray-200 h-[calc(100vh-4rem)] sticky top-16 overflow-y-auto">
-      <!-- Add this toggle button at the top -->
-      <div class="flex justify-end p-2">
-        <button id="sidebarToggle" class="text-gray-500 hover:text-brand-purple p-1 rounded-md">
-          <i class="fas fa-chevron-left"></i>
-        </button>
-      </div>
-      
-      <div class="p-4">
-        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
-          Navigation
-        </h3>
-
-        <!-- Navigation Links -->
-        <div class="space-y-2">
-          <button id="showAllCoursesBtn" class="flex items-center w-full px-3 py-2 text-gray-900 rounded-md hover:bg-gray-100 group active-nav-item">
-            <i class="fas fa-book-open mr-3 text-brand-purple"></i>
-            <span class="font-medium">All Courses</span>
-          </button>
-          
-          <button id="showMyProgressBtn" class="flex items-center w-full px-3 py-2 text-gray-600 rounded-md hover:bg-gray-100 group">
-            <i class="fas fa-chart-line mr-3 text-gray-400"></i>
-            <span class="font-medium">My Progress</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Course Tree List -->
-      <div id="courseTree" class="mt-4 border-t border-gray-200 pt-4">
-        <div class="flex items-center justify-between px-4 mb-3">
-          <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider">
-            Courses
-          </h3>
-          <div class="flex items-center space-x-1">
-            <button id="filterAllCourses" class="course-filter-badge active">All</button>
-            <button id="filterEnrolledCourses" class="course-filter-badge">Enrolled</button>
-          </div>
-        </div>
-        
-        <div class="px-2 mb-2">
-          <div class="relative">
-            <input 
-              id="courseTreeSearch" 
-              type="text" 
-              placeholder="Filter courses..." 
-              class="w-full py-1 px-2 pl-7 text-sm border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-purple focus:border-brand-purple"
-            >
-            <div class="absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none">
-              <i class="fas fa-search text-gray-400 text-xs"></i>
-            </div>
-            <button id="clearTreeSearch" class="absolute inset-y-0 right-0 flex items-center pr-2 text-gray-400 hover:text-gray-600 hidden">
-              <i class="fas fa-times text-xs"></i>
-            </button>
-          </div>
-        </div>
-        
-        <div class="space-y-1 px-2 overflow-y-auto" style="max-height: calc(100vh - 13rem);">
-          <ul id="courseTreeList" class="space-y-1">
-            <!-- Course tree will be generated here -->
-          </ul>
-        </div>
+      <!-- Main Content Area -->
+      <div id="main-content" class="flex-1 p-6">
+        <!-- Content will be rendered by JavaScript -->
       </div>
     </div>
+  </div>
 
-    <!-- Main Content Area -->
-    <div class="flex-1 p-6">
-      <!-- Content Pages - Only one will be shown at a time -->
+  <!-- Templates - These are hidden and used by JavaScript -->
+  <div id="templates" class="hidden">
+    <!-- Course Card Template -->
+    <template id="course-card-template">
+      <div class="course-card bg-white rounded-lg shadow-md overflow-hidden flex flex-col border border-gray-200">
+        <div class="course-image-container relative">
+          <img class="course-image h-48 w-full object-cover" src="" alt="">
+          <div class="enrolled-badge absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full hidden">
+            <i class="fas fa-user-check mr-1"></i>Enrolled
+          </div>
+        </div>
+        <div class="p-5 flex flex-col flex-1 border-t border-gray-100">
+          <h2 class="course-title text-xl font-bold mb-2 text-gray-800 leading-tight"></h2>
+          <p class="course-instructor text-sm text-gray-600 mb-1">
+            <i class="fas fa-user-tie mr-2"></i><span></span>
+          </p>
+          <p class="course-duration text-sm text-gray-600 mb-3">
+            <i class="fas fa-clock mr-2"></i><span></span>
+          </p>
+          <p class="course-description text-gray-700 text-sm mb-4 flex-grow"></p>
+          <div class="enroll-button-container mb-4"></div>
+          <hr class="border-gray-200 mb-4">
+          <div class="course-progress-container"></div>
+          <div class="lessons-container"></div>
+        </div>
+      </div>
+    </template>
+
+    <!-- Lesson Button Template -->
+    <template id="lesson-button-template">
+      <button class="lesson-button flex items-center justify-between w-full text-left p-3 rounded-lg transition-colors">
+        <div class="flex items-center">
+          <i class="lesson-icon mr-3"></i>
+          <span class="lesson-title"></span>
+        </div>
+        <div class="flex items-center">
+          <span class="lesson-progress text-xs mr-2"></span>
+          <span class="lesson-arrow text-gray-400">
+            <i class="fas fa-chevron-right"></i>
+          </span>
+        </div>
+      </button>
+    </template>
+
+    <!-- Course Tree Item Template -->
+    <template id="course-tree-item-template">
+      <li class="course-tree-item mb-2 overflow-hidden">
+        <div class="flex items-center justify-between py-2 px-1 hover:bg-gray-50 rounded cursor-pointer">
+          <div class="flex items-center flex-grow min-w-0">
+            <span class="course-tree-toggle text-gray-400 mr-2">
+              <i class="fas fa-chevron-right"></i>
+            </span>
+            <span class="course-icon mr-2">
+              <i class="fas fa-book"></i>
+            </span>
+            <span class="course-tree-title truncate font-medium text-sm"></span>
+          </div>
+        </div>
+        <div class="course-tree-lessons ml-4"></div>
+      </li>
+    </template>
+    
+    <!-- More templates for other components... -->
+  </div>
+
+  <!-- Modal Templates -->
+  <div id="video-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+    <!-- Video modal content -->
+  </div>
+
+  <div id="document-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+    <!-- Document modal content -->
+  </div>
+
+  <script>
+    // Global state
+    const AppState = {
+      data: {
+        courses: [],
+        currentView: 'courses',
+        currentCourseId: null,
+        currentLessonId: null,
+        filters: {
+          courseTree: 'all',
+          searchQuery: ''
+        }
+      },
       
-      <!-- All Courses Page -->
-      <div id="allCoursesPage" class="block">
-        <div class="mb-8 border-b border-gray-200 pb-4">
-          <h1 id="platformTitle" class="text-3xl font-bold text-gray-900 mb-2">My Courses</h1>
-          <div class="flex items-center justify-between flex-wrap gap-4">
-            <p class="text-gray-600">Continue learning where you left off</p>
-            
-            <!-- Add search bar here -->
-            <div class="relative w-full max-w-md">
-              <input 
-                id="searchInput" 
-                type="text" 
-                placeholder="Search for courses or lessons..." 
-                class="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent"
-              >
-              <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <i class="fas fa-search text-gray-400"></i>
+      // State management methods
+      init() {
+        // Load courses from config
+        this.data.courses = platformConfig.courses;
+        
+        // Load user data from localStorage
+        this.loadUserData();
+        
+        // Initialize UI
+        this.render();
+        
+        // Set up event listeners for global components
+        this.setupEventListeners();
+      },
+      
+      loadUserData() {
+        const storedData = localStorage.getItem('learningData');
+        if (storedData) {
+          try {
+            this.userData = JSON.parse(storedData);
+          } catch (e) {
+            console.error("Error parsing stored data:", e);
+            this.userData = this.createEmptyUserData();
+          }
+        } else {
+          this.userData = this.createEmptyUserData();
+        }
+      },
+      
+      createEmptyUserData() {
+        return {
+          courses: {},
+          lastUpdated: Date.now()
+        };
+      },
+      
+      saveUserData() {
+        this.userData.lastUpdated = Date.now();
+        localStorage.setItem('learningData', JSON.stringify(this.userData));
+      },
+      
+      render() {
+        this.renderNavigation();
+        this.renderSidebar();
+        this.renderMainContent();
+      },
+      
+      setupEventListeners() {
+        // Global event delegation
+        document.addEventListener('click', this.handleGlobalClick.bind(this));
+      },
+      
+      handleGlobalClick(event) {
+        // Example of event delegation
+        if (event.target.closest('#showAllCoursesBtn')) {
+          this.data.currentView = 'courses';
+          this.render();
+        } else if (event.target.closest('#showMyProgressBtn')) {
+          this.data.currentView = 'progress';
+          this.render();
+        }
+        // Add more global click handlers...
+      },
+      
+      // Component rendering methods
+      renderNavigation() {
+        const nav = document.getElementById('main-nav');
+        nav.innerHTML = `
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+              <div class="flex items-center">
+                <span id="brandLogo" class="text-2xl font-bold text-brand-purple">
+                  <i class="fas fa-graduation-cap mr-2"></i>
+                  <span id="navTitle">${platformConfig.title}</span>
+                </span>
               </div>
-              <button id="clearSearch" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 hidden">
-                <i class="fas fa-times"></i>
+              
+              <div class="flex items-center">
+                <button class="ml-4 p-2 rounded-full hover:bg-gray-100">
+                  <i class="fas fa-user-circle text-gray-500 text-xl"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      },
+      
+      renderSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        sidebar.innerHTML = `
+          <div class="flex justify-end p-2">
+            <button id="sidebarToggle" class="text-gray-500 hover:text-brand-purple p-1 rounded-md">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+          </div>
+          
+          <div class="p-4">
+            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+              Navigation
+            </h3>
+
+            <div class="space-y-2">
+              <button id="showAllCoursesBtn" class="flex items-center w-full px-3 py-2 text-gray-900 rounded-md hover:bg-gray-100 group ${this.data.currentView === 'courses' ? 'active-nav-item' : ''}">
+                <i class="fas fa-book-open mr-3 text-brand-purple"></i>
+                <span class="font-medium">All Courses</span>
+              </button>
+              
+              <button id="showMyProgressBtn" class="flex items-center w-full px-3 py-2 text-gray-600 rounded-md hover:bg-gray-100 group ${this.data.currentView === 'progress' ? 'active-nav-item' : ''}">
+                <i class="fas fa-chart-line mr-3 text-gray-400"></i>
+                <span class="font-medium">My Progress</span>
               </button>
             </div>
           </div>
-        </div>
-        
-        <div id="courses" class="grid grid-cols-1 md:grid-cols-2 gap-8"></div>
-      </div>
-      
-      <!-- My Progress Page -->
-      <div id="myProgressPage" class="hidden">
-        <div class="mb-8 border-b border-gray-200 pb-4">
-          <h1 class="text-3xl font-bold text-gray-900">My Learning Progress</h1>
-          <p class="mt-2 text-gray-600">Track your course completion and achievements</p>
-        </div>
-        
-        <div id="progressStats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <!-- Progress statistics cards -->
-          <div class="bg-white p-6 rounded-lg shadow border border-gray-200">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-gray-500">Courses in Progress</p>
-                <h3 id="coursesInProgressCount" class="text-3xl font-bold text-gray-900">0</h3>
-              </div>
-              <div class="bg-blue-100 p-3 rounded-full">
-                <i class="fas fa-book text-blue-500 text-xl"></i>
+
+          <div id="courseTree" class="mt-4 border-t border-gray-200 pt-4">
+            <div class="flex items-center justify-between px-4 mb-3">
+              <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+                Courses
+              </h3>
+              <div class="flex items-center space-x-1">
+                <button id="filterAllCourses" class="course-filter-badge ${this.data.filters.courseTree === 'all' ? 'active' : ''}">All</button>
+                <button id="filterEnrolledCourses" class="course-filter-badge ${this.data.filters.courseTree === 'enrolled' ? 'active' : ''}">Enrolled</button>
               </div>
             </div>
-          </div>
-          
-          <div class="bg-white p-6 rounded-lg shadow border border-gray-200">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-gray-500">Lessons Completed</p>
-                <h3 id="lessonsCompletedCount" class="text-3xl font-bold text-gray-900">0</h3>
-              </div>
-              <div class="bg-green-100 p-3 rounded-full">
-                <i class="fas fa-check-circle text-green-500 text-xl"></i>
-              </div>
-            </div>
-          </div>
-          
-          <div class="bg-white p-6 rounded-lg shadow border border-gray-200">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-gray-500">Overall Progress</p>
-                <h3 id="overallProgressPercent" class="text-3xl font-bold text-gray-900">0%</h3>
-              </div>
-              <div class="bg-purple-100 p-3 rounded-full">
-                <i class="fas fa-chart-pie text-brand-purple text-xl"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div id="courseProgressList" class="space-y-6">
-          <!-- Course progress details will be rendered here -->
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Video Modal -->
-  <div id="videoModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center hidden z-50">
-    <div class="bg-white rounded-lg w-full max-w-4xl shadow-2xl overflow-hidden">
-      <div class="bg-gray-100 border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-        <h2 id="lessonTitle" class="text-xl font-bold text-gray-800 truncate"></h2>
-        <button onclick="closeVideo()" class="text-gray-500 hover:text-red-600 focus:outline-none">
-          <i class="fas fa-times text-xl"></i>
-        </button>
-      </div>
-      
-      <div id="videoContainer" class="p-6">
-        <!-- Regular video player (for MP4) -->
-        <video id="lessonVideo" class="w-full rounded-lg shadow-lg hidden" controls></video>
-        
-        <!-- YouTube iframe (for YouTube videos) -->
-        <div id="youtubeContainer" class="relative pt-0 w-full hidden">
-          <div id="youtubePlayer" class="w-full rounded-lg shadow-lg aspect-video"></div>
-        </div>
-      </div>
-      
-      <div class="bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-between">
-        <button id="restartButton" onclick="restartLesson()" 
-                class="flex items-center bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-md font-medium opacity-50 cursor-not-allowed" disabled>
-          <i class="fas fa-redo mr-2"></i>
-          Restart Lesson
-        </button>
-        <button id="markCompletedButton" onclick="markCompleted()" 
-                class="flex items-center bg-brand-purple hover:bg-purple-700 text-white px-6 py-3 rounded-md font-medium">
-          <i class="fas fa-check-circle mr-2"></i>
-          Mark as Completed
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Add this after the video modal section -->
-
-  <!-- Document Modal -->
-  <div id="documentModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center hidden z-50">
-    <div class="bg-white rounded-lg w-full max-w-4xl shadow-2xl overflow-hidden">
-      <div class="bg-gray-100 border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-        <h2 id="documentTitle" class="text-xl font-bold text-gray-800 truncate"></h2>
-        <button onclick="closeDocument()" class="text-gray-500 hover:text-red-600 focus:outline-none">
-          <i class="fas fa-times text-xl"></i>
-        </button>
-      </div>
-      
-      <div class="p-6 overflow-y-auto" style="max-height: 70vh;">
-        <!-- Document viewer container -->
-        <div id="documentContainer" class="w-full">
-          <!-- PowerPoint Viewer -->
-          <div id="powerpointViewer" class="hidden">
-            <div class="bg-gray-50 border rounded-lg p-4">
-              <div id="slideNavigator" class="flex items-center justify-between mb-4">
-                <button id="prevSlide" class="px-3 py-1 bg-gray-200 rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
-                  <i class="fas fa-chevron-left"></i>
-                </button>
-                <span id="slideCounter" class="text-sm font-medium">Slide 1 of 24</span>
-                <button id="nextSlide" class="px-3 py-1 bg-gray-200 rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
-                  <i class="fas fa-chevron-right"></i>
+            
+            <div class="px-2 mb-2">
+              <div class="relative">
+                <input 
+                  id="courseTreeSearch" 
+                  type="text" 
+                  placeholder="Filter courses..." 
+                  class="w-full py-1 px-2 pl-7 text-sm border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-purple focus:border-brand-purple"
+                  value="${this.data.filters.searchQuery}"
+                >
+                <div class="absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none">
+                  <i class="fas fa-search text-gray-400 text-xs"></i>
+                </div>
+                <button id="clearTreeSearch" class="absolute inset-y-0 right-0 flex items-center pr-2 text-gray-400 hover:text-gray-600 ${this.data.filters.searchQuery ? '' : 'hidden'}">
+                  <i class="fas fa-times text-xs"></i>
                 </button>
               </div>
-              <div id="slideFrame" class="w-full aspect-video bg-white rounded border border-gray-200 flex items-center justify-center">
-                <iframe 
-                  src="" 
-                  width="100%" 
-                  height="100%" 
-                  frameborder="0"
-                  class="w-full aspect-video"
-                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-presentation">
-                </iframe>
-              </div>
             </div>
-            <div class="mt-4">
-              <p class="text-sm text-gray-600 mb-2"><i class="fas fa-info-circle mr-1"></i> For full interactive features:</p>
-              <a id="externalPptLink" href="#" target="_blank" class="text-sm text-brand-purple hover:underline flex items-center">
-                <i class="fas fa-external-link-alt mr-1"></i> Open in Microsoft PowerPoint Online
+            
+            <div class="space-y-1 px-2 overflow-y-auto" style="max-height: calc(100vh - 13rem);">
+              <ul id="courseTreeList" class="space-y-1">
+                <!-- Course tree items are rendered by renderCourseTree() -->
+              </ul>
+            </div>
+          </div>
+        `;
+        
+        this.renderCourseTree();
+        this.setupSidebarEventListeners();
+      },
+      
+      renderCourseTree() {
+        const courseTreeList = document.getElementById('courseTreeList');
+        if (!courseTreeList) return;
+        
+        courseTreeList.innerHTML = '';
+        
+        // Filter courses based on the selected filter
+        let coursesToShow = this.data.courses;
+        
+        // If "enrolled" filter is selected, only show enrolled courses
+        if (this.data.filters.courseTree === 'enrolled') {
+          coursesToShow = this.data.courses.filter(course => this.checkEnrollmentStatus(course.id));
+        }
+        
+        // If there's a search query, filter by it
+        if (this.data.filters.searchQuery) {
+          const query = this.data.filters.searchQuery.toLowerCase();
+          coursesToShow = coursesToShow.filter(course => 
+            course.title.toLowerCase().includes(query) || 
+            course.description.toLowerCase().includes(query) ||
+            course.lessons.some(lesson => lesson.title.toLowerCase().includes(query))
+          );
+        }
+        
+        // If no courses to show after filtering
+        if (coursesToShow.length === 0) {
+          courseTreeList.innerHTML = `
+            <li class="px-2 py-3 text-gray-500 text-center text-sm">
+              <i class="fas fa-info-circle mr-2"></i>
+              No courses found
+            </li>
+          `;
+          return;
+        }
+        
+        // Create course tree items
+        coursesToShow.forEach(course => {
+          const template = document.getElementById('course-tree-item-template');
+          const item = template.content.cloneNode(true);
+          
+          // Set course data and title
+          const courseItem = item.querySelector('.course-tree-item');
+          courseItem.dataset.courseId = course.id;
+          item.querySelector('.course-tree-title').textContent = course.title;
+          
+          // Set icon based on enrollment status
+          const iconElement = item.querySelector('.course-icon i');
+          if (this.checkEnrollmentStatus(course.id)) {
+            iconElement.className = 'fas fa-book text-green-500';
+          }
+          
+          // Add click handler for expanding/collapsing
+          const headerDiv = item.querySelector('.course-tree-item > div');
+          const toggleIcon = item.querySelector('.course-tree-toggle i');
+          const lessonsList = item.querySelector('.course-tree-lessons');
+          
+          // Initially hide lessons
+          lessonsList.classList.add('hidden');
+          
+          // Click handler to toggle lessons visibility
+          headerDiv.addEventListener('click', () => {
+            lessonsList.classList.toggle('hidden');
+            toggleIcon.classList.toggle('fa-chevron-right');
+            toggleIcon.classList.toggle('fa-chevron-down');
+          });
+          
+          // Populate lessons
+          course.lessons.forEach(lesson => {
+            const lessonItem = document.createElement('div');
+            lessonItem.className = 'py-1 pl-2';
+            
+            // Determine if lesson is completed or in progress
+            let lessonIcon, textClass;
+            const progress = this.getLessonProgress(course.id, lesson.id);
+            
+            if (progress >= 1) {
+              lessonIcon = '<i class="fas fa-check-circle text-green-500 mr-2"></i>';
+              textClass = 'text-gray-700';
+            } else if (progress > 0) {
+              if (lesson.contentType === 'video') {
+                lessonIcon = '<i class="fas fa-play-circle text-blue-500 mr-2"></i>';
+              } else {
+                lessonIcon = '<i class="fas fa-file-alt text-blue-500 mr-2"></i>';
+              }
+              textClass = 'text-gray-700';
+            } else {
+              if (lesson.contentType === 'video') {
+                lessonIcon = '<i class="fas fa-play-circle text-gray-400 mr-2"></i>';
+              } else {
+                lessonIcon = '<i class="fas fa-file-alt text-gray-400 mr-2"></i>';
+              }
+              textClass = 'text-gray-500';
+            }
+            
+            lessonItem.innerHTML = `
+              <a href="#" class="flex items-center text-sm ${textClass} hover:text-gray-900 truncate">
+                ${lessonIcon}
+                <span class="truncate">${lesson.title}</span>
               </a>
+            `;
+            
+            // Add click handler for lesson
+            lessonItem.querySelector('a').addEventListener('click', (e) => {
+              e.preventDefault();
+              this.data.currentCourseId = course.id;
+              this.data.currentLessonId = lesson.id;
+              this.data.currentView = 'course-details';
+              this.render();
+            });
+            
+            lessonsList.appendChild(lessonItem);
+          });
+          
+          courseTreeList.appendChild(item);
+        });
+      },
+
+      getLessonProgress(courseId, lessonId) {
+        return this.userData?.courses?.[courseId]?.lessons?.[lessonId]?.progress || 0;
+      },
+
+      isLessonCompleted(courseId, lessonId) {
+        return this.getLessonProgress(courseId, lessonId) >= 1;
+      },
+
+      setupSidebarEventListeners() {
+        // Course tree filter buttons
+        const filterAllBtn = document.getElementById('filterAllCourses');
+        const filterEnrolledBtn = document.getElementById('filterEnrolledCourses');
+        
+        if (filterAllBtn && filterEnrolledBtn) {
+          filterAllBtn.addEventListener('click', () => {
+            this.data.filters.courseTree = 'all';
+            this.renderCourseTree();
+          });
+          
+          filterEnrolledBtn.addEventListener('click', () => {
+            this.data.filters.courseTree = 'enrolled';
+            this.renderCourseTree();
+          });
+        }
+        
+        // Course tree search
+        const searchInput = document.getElementById('courseTreeSearch');
+        const clearSearch = document.getElementById('clearTreeSearch');
+        
+        if (searchInput && clearSearch) {
+          searchInput.addEventListener('input', () => {
+            this.data.filters.searchQuery = searchInput.value;
+            
+            if (searchInput.value) {
+              clearSearch.classList.remove('hidden');
+            } else {
+              clearSearch.classList.add('hidden');
+            }
+            
+            this.renderCourseTree();
+          });
+          
+          clearSearch.addEventListener('click', () => {
+            searchInput.value = '';
+            this.data.filters.searchQuery = '';
+            clearSearch.classList.add('hidden');
+            this.renderCourseTree();
+          });
+        }
+        
+        // Sidebar toggle
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('main-content');
+
+        if (sidebarToggle && sidebar) {
+          sidebarToggle.addEventListener('click', () => {
+            // Toggle sidebar width
+            sidebar.classList.toggle('w-64');
+            sidebar.classList.toggle('w-16');
+            
+            // Add left padding to main content when sidebar is expanded
+            // This ensures content doesn't jump when toggling
+            mainContent.classList.toggle('md:pl-64');
+            mainContent.classList.toggle('md:pl-16');
+            
+            const sidebarCollapsed = sidebar.classList.contains('w-16');
+            
+            // Update toggle icon
+            sidebarToggle.innerHTML = sidebarCollapsed ? 
+              '<i class="fas fa-chevron-right"></i>' : 
+              '<i class="fas fa-chevron-left"></i>';
+            
+            // Hide/show content based on collapsed state
+            const elementsToToggle = sidebar.querySelectorAll('.p-4, #courseTree');
+            elementsToToggle.forEach(el => {
+              el.classList.toggle('hidden', sidebarCollapsed);
+            });
+          });
+        }
+      },
+      
+      renderMainContent() {
+        const mainContent = document.getElementById('main-content');
+        
+        // Clear content
+        mainContent.innerHTML = '';
+        
+        // Render based on current view
+        switch(this.data.currentView) {
+          case 'courses':
+            mainContent.appendChild(this.renderCoursesPage());
+            break;
+          case 'progress':
+            mainContent.appendChild(this.renderProgressPage());
+            break;
+          case 'course-details':
+            mainContent.appendChild(this.renderCourseDetailsPage());
+            break;
+          default:
+            mainContent.appendChild(this.renderCoursesPage());
+        }
+      },
+      
+      renderCoursesPage() {
+        const page = document.createElement('div');
+        page.id = 'allCoursesPage';
+        page.className = 'block';
+        
+        page.innerHTML = `
+          <div class="mb-8 border-b border-gray-200 pb-4">
+            <h1 id="platformTitle" class="text-3xl font-bold text-gray-900 mb-2">${platformConfig.pageTitle}</h1>
+            <div class="flex items-center justify-between flex-wrap gap-4">
+              <p class="text-gray-600">Continue learning where you left off</p>
+              
+              <div class="relative w-full max-w-md">
+                <input 
+                  id="searchInput" 
+                  type="text" 
+                  placeholder="Search for courses or lessons..." 
+                  class="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent"
+                  value="${this.data.filters.searchQuery}"
+                >
+                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <i class="fas fa-search text-gray-400"></i>
+                </div>
+                <button id="clearSearch" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 ${this.data.filters.searchQuery ? '' : 'hidden'}">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
             </div>
           </div>
           
-          <!-- Word Document Viewer -->
-          <div id="wordViewer" class="hidden">
-            <div class="bg-gray-50 border rounded-lg p-4">
-              <div id="pageNavigator" class="flex items-center justify-between mb-4">
-                <button id="prevPage" class="px-3 py-1 bg-gray-200 rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
-                  <i class="fas fa-chevron-left"></i>
-                </button>
-                <span id="pageCounter" class="text-sm font-medium">Page 1 of 12</span>
-                <button id="nextPage" class="px-3 py-1 bg-gray-200 rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
-                  <i class="fas fa-chevron-right"></i>
-                </button>
+          <div id="courses" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Course cards are rendered by renderCourseCards() -->
+          </div>
+        `;
+        
+        // After the page is added to the DOM, render course cards
+        setTimeout(() => {
+          this.renderCourseCards();
+          this.setupCoursesPageEventListeners();
+        }, 0);
+        
+        return page;
+      },
+
+      renderCourseCards() {
+        const container = document.getElementById('courses');
+        if (!container) return;
+        
+        // Clear existing cards
+        container.innerHTML = '';
+        
+        // Filter courses based on search query if necessary
+        const coursesToRender = this.data.filters.searchQuery ? 
+          this.filterCoursesBySearch(this.data.courses, this.data.filters.searchQuery) : 
+          this.data.courses;
+          
+        if (coursesToRender.length === 0) {
+          container.innerHTML = `
+            <div class="col-span-full text-center py-10">
+              <div class="text-gray-400 mb-4"><i class="fas fa-book-open text-5xl"></i></div>
+              <h3 class="text-xl font-semibold text-gray-700 mb-2">No Courses Available</h3>
+              <p class="text-gray-500">There are currently no courses available.</p>
+            </div>
+          `;
+          return;
+        }
+        
+        // Create course cards using the template
+        coursesToRender.forEach(course => {
+          const template = document.getElementById('course-card-template');
+          const card = template.content.cloneNode(true);
+          
+          // Set course data attributes
+          const cardElement = card.querySelector('.course-card');
+          cardElement.dataset.courseId = course.id;
+          
+          // Set image
+          const img = card.querySelector('.course-image');
+          img.src = course.image;
+          img.alt = course.title;
+          
+          // Show enrollment badge if enrolled
+          const isEnrolled = this.checkEnrollmentStatus(course.id);
+          if (isEnrolled) {
+            card.querySelector('.enrolled-badge').classList.remove('hidden');
+          }
+          
+          // Create title container with View Course button
+          const titleEl = card.querySelector('.course-title');
+          const titleText = titleEl.textContent = course.title;
+          
+          // Add title with button container
+          const titleContainer = document.createElement('div');
+          titleContainer.className = 'flex items-center justify-between mb-2';
+          titleEl.replaceWith(titleContainer);
+          
+          // Add title element
+          const newTitleEl = document.createElement('h2');
+          newTitleEl.className = 'course-title text-xl font-bold text-gray-800 leading-tight';
+          newTitleEl.textContent = course.title;
+          titleContainer.appendChild(newTitleEl);
+          
+          // Add View Course button
+          const viewCourseBtn = document.createElement('button');
+          viewCourseBtn.className = 'text-sm px-3 py-1 bg-brand-purple text-white rounded hover:bg-purple-700 ml-2 whitespace-nowrap';
+          viewCourseBtn.innerHTML = '<i class="fas fa-eye mr-1"></i> View Course';
+          viewCourseBtn.dataset.courseId = course.id;
+          viewCourseBtn.addEventListener('click', () => {
+            this.data.currentCourseId = course.id;
+            this.data.currentView = 'course-details';
+            this.render();
+          });
+          titleContainer.appendChild(viewCourseBtn);
+          
+          // Set the rest of the course details
+          card.querySelector('.course-instructor span').textContent = course.instructor;
+          card.querySelector('.course-duration span').textContent = course.duration;
+          card.querySelector('.course-description').textContent = course.description;
+          
+          // Set up enroll/unenroll button
+          this.setupEnrollButton(card, course, isEnrolled);
+          
+          // Set up progress section if enrolled
+          if (isEnrolled) {
+            this.setupProgressSection(card, course);
+          }
+          
+          // Set up lessons section
+          this.setupLessonsSection(card, course, isEnrolled);
+          
+          container.appendChild(card);
+        });
+      },
+
+      setupEnrollButton(card, course, isEnrolled) {
+        const buttonContainer = card.querySelector('.enroll-button-container');
+        
+        const button = document.createElement('button');
+        button.className = isEnrolled ? 
+          "w-full py-2 px-4 bg-red-50 text-red-600 border border-red-200 rounded hover:bg-red-100 transition-colors" : 
+          "w-full py-2 px-4 bg-brand-purple text-white rounded hover:bg-purple-700 transition-colors";
+        
+        button.innerHTML = isEnrolled ? 
+          '<i class="fas fa-user-minus mr-2"></i>Unenroll' : 
+          '<i class="fas fa-user-plus mr-2"></i>Enroll in Course';
+        
+        button.dataset.action = isEnrolled ? 'unenroll' : 'enroll';
+        button.dataset.courseId = course.id;
+        
+        buttonContainer.appendChild(button);
+      },
+
+      setupProgressSection(card, course) {
+        const progressContainer = card.querySelector('.course-progress-container');
+        
+        // Calculate overall course progress
+        let totalProgress = 0;
+        let completedLessons = 0;
+        
+        course.lessons.forEach(lesson => {
+          const progress = this.getLessonProgress(course.id, lesson.id);
+          totalProgress += progress;
+          if (progress >= 1) completedLessons++;
+        });
+        
+        const averageProgress = course.lessons.length > 0 ? totalProgress / course.lessons.length : 0;
+        const progressPercent = Math.round(averageProgress * 100);
+        
+        // Create progress section
+        const progressSection = document.createElement('div');
+        progressSection.className = 'mb-4';
+        progressSection.innerHTML = `
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-sm font-medium text-gray-700">Course Progress</span>
+            <span class="text-xs text-gray-600">${completedLessons} of ${course.lessons.length} lessons completed</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-bar-fill" style="width: ${progressPercent}%"></div>
+          </div>
+          <div class="flex justify-end mt-1">
+            <span class="text-xs text-gray-600">${progressPercent}% complete</span>
+          </div>
+        `;
+        
+        progressContainer.appendChild(progressSection);
+      },
+
+      setupLessonsSection(card, course, isEnrolled) {
+        const lessonsContainer = card.querySelector('.lessons-container');
+        
+        const header = document.createElement('div');
+        header.className = 'flex items-center justify-between mb-2';
+        header.innerHTML = `
+          <h3 class="font-medium text-gray-700">Lessons</h3>
+        `;
+        
+        lessonsContainer.appendChild(header);
+        
+        // Create lessons list (show first 3 only)
+        const lessonsList = document.createElement('div');
+        lessonsList.className = 'space-y-2';
+        
+        // Show only first 3 lessons as preview
+        const lessonsToShow = course.lessons.slice(0, 3);
+        lessonsToShow.forEach(lesson => {
+          // Use template for consistent lesson buttons
+          const template = document.getElementById('lesson-button-template');
+          const button = template.content.cloneNode(true);
+          
+          const lessonButton = button.querySelector('.lesson-button');
+          lessonButton.classList.add('bg-gray-50', 'hover:bg-gray-100');
+  
+          if (isEnrolled) {
+            lessonButton.classList.add('cursor-pointer');
+          } else {
+            lessonButton.classList.add('cursor-not-allowed');
+            lessonButton.classList.add('opacity-60');
+          }
+          
+          // Determine icon and style based on lesson status
+          const icon = lessonButton.querySelector('.lesson-icon');
+          const progress = this.getLessonProgress(course.id, lesson.id);
+          
+          if (progress >= 1) {
+            icon.className = 'fas fa-check-circle text-green-500 mr-3';
+            lessonButton.classList.add('lesson-completed');
+          } else if (progress > 0) {
+            if (lesson.contentType === 'video') {
+              icon.className = 'fas fa-play-circle text-blue-500 mr-3';
+            } else {
+              icon.className = 'fas fa-file-alt text-blue-500 mr-3';
+            }
+            lessonButton.classList.add('lesson-in-progress');
+          } else {
+            if (lesson.contentType === 'video') {
+              icon.className = 'fas fa-play-circle text-gray-400 mr-3';
+            } else {
+              icon.className = 'fas fa-file-alt text-gray-400 mr-3';
+            }
+          }
+          
+          // Set lesson title
+          lessonButton.querySelector('.lesson-title').textContent = lesson.title;
+          
+          // Set progress info if any
+          if (progress > 0 && progress < 1) {
+            lessonButton.querySelector('.lesson-progress').textContent = `${Math.round(progress * 100)}%`;
+          } else {
+            lessonButton.querySelector('.lesson-progress').textContent = '';
+          }
+          
+          // Add click handler if enrolled
+          if (isEnrolled) {
+            lessonButton.addEventListener('click', () => {
+              this.data.currentCourseId = course.id;
+              this.data.currentLessonId = lesson.id;
+              this.data.currentView = 'course-details';
+              this.render();
+            });
+          }
+          
+          lessonsList.appendChild(button);
+        });
+        
+        lessonsContainer.appendChild(lessonsList);
+        
+        // If there are more lessons, add a "See all" link
+        if (course.lessons.length > 3) {
+          const seeAllLink = document.createElement('a');
+          seeAllLink.className = 'text-xs text-gray-500 hover:text-gray-700 mt-2 inline-block';
+          seeAllLink.textContent = `+ ${course.lessons.length - 3} more lessons`;
+          seeAllLink.href = '#';
+          seeAllLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.data.currentCourseId = course.id;
+            this.data.currentView = 'course-details';
+            this.render();
+          });
+          
+          lessonsContainer.appendChild(seeAllLink);
+        }
+      },
+
+      renderProgressPage() {
+        const page = document.createElement('div');
+        page.id = 'myProgressPage';
+        page.className = 'block';
+        
+        // Find enrolled courses for summary stats
+        const enrolledCourses = this.data.courses.filter(course => this.checkEnrollmentStatus(course.id));
+        
+        // Calculate overall stats
+        let totalLessons = 0;
+        let completedLessons = 0;
+        let inProgressLessons = 0;
+        
+        enrolledCourses.forEach(course => {
+          course.lessons.forEach(lesson => {
+            totalLessons++;
+            const progress = this.getLessonProgress(course.id, lesson.id);
+            if (progress >= 1) {
+              completedLessons++;
+            } else if (progress > 0) {
+              inProgressLessons++;
+            }
+          });
+        });
+        
+        const overallProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+        
+        page.innerHTML = `
+          <div class="mb-8 border-b border-gray-200 pb-4">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">My Progress</h1>
+            <p class="text-gray-600">Track your learning journey</p>
+          </div>
+          
+          ${enrolledCourses.length > 0 ? `
+          <!-- Progress Summary -->
+          <div class="bg-white rounded-lg shadow-md border border-gray-200 mb-8">
+            <div class="p-6">
+              <h2 class="text-xl font-semibold text-gray-800 mb-6">Learning Summary</h2>
+              
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Courses stats -->
+                <div class="flex flex-col items-center justify-center bg-gray-50 rounded-lg p-6">
+                  <div class="text-brand-purple text-4xl font-bold mb-2">${enrolledCourses.length}</div>
+                  <div class="text-gray-700 font-medium">Courses in Progress</div>
+                </div>
+                
+                <!-- Lessons stats -->
+                <div class="flex flex-col items-center justify-center bg-gray-50 rounded-lg p-6">
+                  <div class="flex items-center gap-2 text-4xl font-bold mb-2">
+                    <span class="text-green-500">${completedLessons}</span>
+                    <span class="text-gray-400 text-xl">/</span>
+                    <span class="text-gray-700">${totalLessons}</span>
+                  </div>
+                  <div class="text-gray-700 font-medium">Lessons Completed</div>
+                </div>
+                
+                <!-- Progress chart -->
+                <div class="flex items-center justify-center">
+                  <div class="relative w-32 h-32">
+                    <!-- SVG circle progress -->
+                    <svg class="w-full h-full" viewBox="0 0 100 100">
+                      <!-- Background circle -->
+                      <circle cx="50" cy="50" r="45" fill="none" stroke="#e5e7eb" stroke-width="10" />
+                      
+                      <!-- Progress circle -->
+                      <circle 
+                        cx="50" 
+                        cy="50" 
+                        r="45" 
+                        fill="none" 
+                        stroke="#6a44d9" 
+                        stroke-width="10" 
+                        stroke-linecap="round"
+                        stroke-dasharray="${overallProgress * 2.83}, 283"
+                        transform="rotate(-90 50 50)" 
+                      />
+                    </svg>
+                    <!-- Percentage in middle -->
+                    <div class="absolute inset-0 flex items-center justify-center text-2xl font-bold text-gray-800">
+                      ${overallProgress}%
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div id="documentFrame" class="w-full bg-white rounded border border-gray-200 min-h-[500px] flex items-center justify-center">
-                <div id="scrollContainer" class="w-full h-[500px] overflow-auto relative">
-                  <iframe 
-                    id="wordDocFrame"
-                    src="" 
-                    width="100%" 
-                    height="100%" 
-                    frameborder="0"
-                    class="min-h-[500px] w-full"
-                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads">
-                  </iframe>
-                  <div id="scrollTracker" class="absolute right-2 top-2 bg-gray-800 bg-opacity-75 text-white px-2 py-1 rounded text-xs">
-                    Page 1 of 12
+              
+              <!-- Lesson breakdown -->
+              <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-gray-700">Course Completion</span>
+                  </div>
+                  <div class="progress-bar">
+                    <div class="progress-bar-fill" style="width: ${overallProgress}%"></div>
+                  </div>
+                  <div class="flex justify-between mt-1">
+                    <span class="text-xs text-gray-500">Not started</span>
+                    <span class="text-xs text-gray-500">In progress</span>
+                    <span class="text-xs text-gray-500">Completed</span>
+                  </div>
+                </div>
+                
+                <div>
+                  <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center">
+                      <span class="w-3 h-3 rounded-full bg-green-500 mr-2"></span>
+                      <span class="text-sm text-gray-600">Completed</span>
+                    </div>
+                    <span class="text-sm font-medium">${completedLessons}</span>
+                  </div>
+                  <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center">
+                      <span class="w-3 h-3 rounded-full bg-blue-500 mr-2"></span>
+                      <span class="text-sm text-gray-600">In Progress</span>
+                    </div>
+                    <span class="text-sm font-medium">${inProgressLessons}</span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                      <span class="w-3 h-3 rounded-full bg-gray-300 mr-2"></span>
+                      <span class="text-sm text-gray-600">Not Started</span>
+                    </div>
+                    <span class="text-sm font-medium">${totalLessons - completedLessons - inProgressLessons}</span>
                   </div>
                 </div>
               </div>
             </div>
-            <div class="mt-4">
-              <p class="text-sm text-gray-600 mb-2"><i class="fas fa-info-circle mr-1"></i> For full interactive features:</p>
-              <a id="externalDocLink" href="#" target="_blank" class="text-sm text-brand-purple hover:underline flex items-center">
-                <i class="fas fa-external-link-alt mr-1"></i> Open in Microsoft Word Online
-              </a>
+          </div>
+          ` : ''}
+          
+          <h2 class="text-xl font-semibold text-gray-800 mb-4 ${enrolledCourses.length > 0 ? '' : 'hidden'}">
+            My Enrolled Courses
+          </h2>
+          
+          <div id="enrolledCourses">
+            <!-- Enrolled courses will be displayed here -->
+          </div>
+        `;
+        
+        setTimeout(() => {
+          this.renderEnrolledCourses();
+        }, 0);
+        
+        return page;
+      },
+
+      renderEnrolledCourses() {
+        const container = document.getElementById('enrolledCourses');
+        if (!container) return;
+        
+        // Find enrolled courses
+        const enrolledCourses = this.data.courses.filter(course => this.checkEnrollmentStatus(course.id));
+        
+        if (enrolledCourses.length === 0) {
+          container.innerHTML = `
+            <div class="text-center py-10 bg-white rounded-lg shadow-sm border border-gray-200">
+              <div class="text-gray-400 mb-4"><i class="fas fa-user-graduate text-5xl"></i></div>
+              <h3 class="text-xl font-semibold text-gray-700 mb-2">No Enrolled Courses</h3>
+              <p class="text-gray-500 mb-4">You haven't enrolled in any courses yet.</p>
+              <button id="browseCoursesBtn" class="px-4 py-2 bg-brand-purple text-white rounded-md hover:bg-purple-700">
+                Browse Courses
+              </button>
             </div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-between">
-        <div class="flex items-center">
-          <span id="documentProgress" class="text-sm text-gray-600">
-            <span id="progressPercent">0%</span> complete
-          </span>
-          <div class="ml-3 bg-gray-200 h-2 w-24 rounded-full overflow-hidden">
-            <div id="progressBar" class="bg-brand-purple h-full" style="width: 0%"></div>
-          </div>
-        </div>
-        
-        <button id="markDocumentCompletedButton" onclick="markDocumentCompleted()" 
-                class="flex items-center bg-brand-purple hover:bg-purple-700 text-white px-6 py-3 rounded-md font-medium">
-          <i class="fas fa-check-circle mr-2"></i>
-          Mark as Completed
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    // Add document handling functions
-
-    // Current document tracking variables
-    let currentDocumentSlide = 1;
-    let currentDocumentPage = 1;
-    let totalSlides = 0;
-    let totalPages = 0;
-
-    // Function to open documents based on their type
-    function openDocument(lesson) {
-      // Find the course this lesson belongs to
-      const course = courses.find(c => c.lessons.some(l => l.id === lesson.id));
-      const courseId = course ? course.id : null;
-      
-      if (!courseId) {
-        console.error("Could not find course for lesson:", lesson);
-        return;
-      }
-      
-      // Check enrollment
-      if (!checkEnrollmentStatus(courseId)) {
-        showToast('Please enroll in this course to view lessons', 'warning');
-        return;
-      }
-      
-      // Set current lesson and course IDs
-      currentLessonId = lesson.id;
-      currentCourseId = courseId;
-      
-      // Set document title
-      document.getElementById('documentTitle').textContent = lesson.title;
-      
-      // Show document modal
-      document.getElementById('documentModal').classList.remove('hidden');
-      
-      // Hide all viewers initially
-      document.getElementById('powerpointViewer').classList.add('hidden');
-      document.getElementById('wordViewer').classList.add('hidden');
-      
-      // Get progress data
-      const progress = getStoredProgress(courseId, lesson.id);
-      updateDocumentProgressIndicator(progress * 100);
-      
-      if (lesson.documentType === 'powerpoint') {
-        handlePowerPoint(lesson, courseId, progress);
-      } else if (lesson.documentType === 'word') {
-        handleWordDocument(lesson, courseId, progress);
-      }
-      
-      // Update the completion button state
-      updateDocumentCompletionButton(courseId, lesson.id);
-    }
-
-    // Handle PowerPoint presentations
-    function handlePowerPoint(lesson, courseId, progress) {
-      // Show PowerPoint viewer
-      document.getElementById('powerpointViewer').classList.remove('hidden');
-      
-      // Set total slides
-      totalSlides = lesson.totalSlides || 1;
-      
-      // Calculate current slide from progress
-      currentDocumentSlide = progress > 0 ? 
-        Math.max(1, Math.min(Math.ceil(progress * totalSlides), totalSlides)) : 1;
-      
-      // Update slide counter
-      document.getElementById('slideCounter').textContent = `Slide ${currentDocumentSlide} of ${totalSlides}`;
-      
-      // Use Microsoft's Office Online viewer with slide parameter - change wdSlideId to wdStartOn
-      const slideFrame = document.getElementById('slideFrame');
-      slideFrame.innerHTML = `
-        <iframe 
-          src="https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(lesson.documentUrl)}&wdStartOn=${currentDocumentSlide}" 
-          width="100%" 
-          height="100%" 
-          frameborder="0"
-          class="w-full aspect-video"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-presentation"
-        ></iframe>
-      `;
-      
-      // Set up external link
-      document.getElementById('externalPptLink').href = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(lesson.documentUrl)}`;
-      
-      // Set up navigation buttons
-      const prevBtn = document.getElementById('prevSlide');
-      const nextBtn = document.getElementById('nextSlide');
-      
-      prevBtn.disabled = currentDocumentSlide <= 1;
-      nextBtn.disabled = currentDocumentSlide >= totalSlides;
-      
-      prevBtn.onclick = () => navigateSlide(-1);
-      nextBtn.onclick = () => navigateSlide(1);
-    }
-
-    // Handle Word documents
-    function handleWordDocument(lesson, courseId, progress) {
-      // Show Word viewer
-      document.getElementById('wordViewer').classList.remove('hidden');
-      
-      // Set total pages
-      totalPages = lesson.pageCount || 1;
-      
-      // Calculate current page from progress
-      currentDocumentPage = progress > 0 ? 
-        Math.max(1, Math.min(Math.ceil(progress * totalPages), totalPages)) : 1;
-      
-      // Update page counter
-      document.getElementById('pageCounter').textContent = `Page ${currentDocumentPage} of ${totalPages}`;
-      
-      // Use Microsoft's Office Online viewer with a container that we can monitor
-      const documentFrame = document.getElementById('documentFrame');
-      documentFrame.innerHTML = `
-        <div id="scrollContainer" class="w-full h-[500px] overflow-auto relative">
-          <iframe 
-            id="wordDocFrame"
-            src="https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(lesson.documentUrl)}" 
-            width="100%" 
-            height="${totalPages * 100}%" 
-            frameborder="0"
-            style="min-height: 500px; height: ${totalPages * 100}%;"
-            scrolling="no"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
-          ></iframe>
-          <div id="scrollTracker" class="absolute right-2 top-2 bg-gray-800 bg-opacity-75 text-white px-2 py-1 rounded text-xs">
-            Page 1 of ${totalPages}
-          </div>
-        </div>
-      `;
-      
-      // Set up external link
-      document.getElementById('externalDocLink').href = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(lesson.documentUrl)}`;
-      
-      // Set up navigation buttons
-      const prevBtn = document.getElementById('prevPage');
-      const nextBtn = document.getElementById('nextPage');
-      
-      prevBtn.disabled = currentDocumentPage <= 1;
-      nextBtn.disabled = currentDocumentPage >= totalPages;
-      
-      prevBtn.onclick = () => navigatePageByScroll(-1);
-      nextBtn.onclick = () => navigatePageByScroll(1);
-      
-      // Add scroll event listener to track progress
-      setTimeout(() => {
-        const scrollContainer = document.getElementById('scrollContainer');
-        const scrollTracker = document.getElementById('scrollTracker');
-        
-        if (scrollContainer) {
-          // Scroll to the initial position based on saved progress
-          const initialScrollPosition = (currentDocumentPage - 1) / totalPages * 
-            (scrollContainer.scrollHeight - scrollContainer.clientHeight);
-          scrollContainer.scrollTop = initialScrollPosition;
+          `;
           
-          // Add scroll listener
-          scrollContainer.addEventListener('scroll', function() {
-            const scrollPercentage = scrollContainer.scrollTop / 
-              (scrollContainer.scrollHeight - scrollContainer.clientHeight);
-            
-            // Calculate current page based on scroll percentage
-            const estimatedPage = Math.min(
-              Math.max(1, Math.ceil(scrollPercentage * totalPages)),
-              totalPages
-            );
-            
-            // Update the scroll tracker and page counter
-            scrollTracker.textContent = `Page ${estimatedPage} of ${totalPages}`;
-            document.getElementById('pageCounter').textContent = `Page ${estimatedPage} of ${totalPages}`;
-            
-            // Only update storage if the page has changed
-            if (estimatedPage !== currentDocumentPage) {
-              currentDocumentPage = estimatedPage;
-              
-              // Update navigation buttons
-              document.getElementById('prevPage').disabled = currentDocumentPage <= 1;
-              document.getElementById('nextPage').disabled = currentDocumentPage >= totalPages;
-              
-              // Calculate and store progress
-              const progress = currentDocumentPage / totalPages;
-              storeProgress(currentCourseId, currentLessonId, progress);
-              updateDocumentProgressIndicator(progress * 100);
-              updateDocumentCompletionButton(currentCourseId, currentLessonId);
-            }
-          }, { passive: true });
-        }
-      }, 1500); // Give the iframe time to load
-    }
-
-    // Function to navigate by scrolling
-    function navigatePageByScroll(direction) {
-      const scrollContainer = document.getElementById('scrollContainer');
-      if (!scrollContainer) return;
-      
-      const newPage = currentDocumentPage + direction;
-      if (newPage < 1 || newPage > totalPages) return;
-      
-      // Calculate the scroll position for the target page
-      const pageHeight = scrollContainer.scrollHeight / totalPages;
-      const targetScrollPosition = (newPage - 1) * pageHeight;
-      
-      // Smooth scroll to the position
-      scrollContainer.scrollTo({
-        top: targetScrollPosition,
-        behavior: 'smooth'
-      });
-      
-      // Page counter and progress updates will be handled by the scroll event listener
-    }
-
-    // Navigation functions for PowerPoint slides
-    function navigateSlide(direction) {
-      const newSlide = currentDocumentSlide + direction;
-      
-      if (newSlide < 1 || newSlide > totalSlides) {
-        return;
-      }
-      
-      currentDocumentSlide = newSlide;
-      
-      // Update UI
-      document.getElementById('slideCounter').textContent = `Slide ${currentDocumentSlide} of ${totalSlides}`;
-      
-      // Reload iframe with new slide number - use wdStartOn instead of wdSlideId
-      const slideFrame = document.getElementById('slideFrame');
-      const lesson = courses.find(c => c.id === currentCourseId)
-        ?.lessons.find(l => l.id === currentLessonId);
-      
-      if (lesson) {
-        slideFrame.innerHTML = `
-          <iframe 
-            src="https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(lesson.documentUrl)}&wdStartOn=${currentDocumentSlide}" 
-            width="100%" 
-            height="100%" 
-            frameborder="0"
-            class="w-full aspect-video"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-presentation"
-          ></iframe>
-        `;
-      }
-      
-      // Update navigation buttons
-      document.getElementById('prevSlide').disabled = currentDocumentSlide <= 1;
-      document.getElementById('nextSlide').disabled = currentDocumentSlide >= totalSlides;
-      
-      // Calculate and store progress
-      const progress = currentDocumentSlide / totalSlides;
-      storeProgress(currentCourseId, currentLessonId, progress);
-      updateDocumentProgressIndicator(progress * 100);
-      updateDocumentCompletionButton(currentCourseId, currentLessonId);
-    }
-
-    // Update progress indicator for documents
-    function updateDocumentProgressIndicator(percent) {
-      document.getElementById('progressPercent').textContent = `${Math.round(percent)}%`;
-      document.getElementById('progressBar').style.width = `${percent}%`;
-    }
-
-    // Update completion button state
-    function updateDocumentCompletionButton(courseId, lessonId) {
-      const completed = isLessonCompleted(courseId, lessonId);
-      const progress = getStoredProgress(courseId, lessonId);
-      const completeBtn = document.getElementById('markDocumentCompletedButton');
-      
-      if (progress === 1 || completed) {
-        completeBtn.disabled = true;
-        completeBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        completeBtn.classList.remove('hover:bg-purple-700');
-        completeBtn.innerHTML = completed ? 
-          '<i class="fas fa-check-double mr-2"></i>Lesson Completed' : 
-          '<i class="fas fa-check mr-2"></i>Already at 100%';
-      } else {
-        completeBtn.disabled = false;
-        completeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-        completeBtn.classList.add('hover:bg-purple-700');
-        completeBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Mark as Completed';
-      }
-    }
-
-    // Mark document completed function
-    function markDocumentCompleted() {
-      markLessonCompleted(currentCourseId, currentLessonId);
-      closeDocument();
-      renderCourses();
-    }
-
-    // Close document function
-    function closeDocument() {
-      document.getElementById('documentModal').classList.add('hidden');
-      renderCourses();
-    }
-
-    // Update the createLessonButton function to handle different content types
-
-    function createLessonButton(lesson, courseId, isEnrolled = true) {
-      const isDone = isLessonCompleted(courseId, lesson.id);
-      const lessonProgress = getStoredProgress(courseId, lesson.id) * 100;
-      const isStarted = lessonProgress > 0 && !isDone;
-      
-      const button = document.createElement('button');
-      button.className = `flex items-center justify-between w-full text-left p-3 rounded-lg transition-colors lesson-button
-        ${isDone ? 'bg-green-50 text-green-800 hover:bg-green-100' : 
-                  isStarted ? 'bg-blue-50 text-blue-800 hover:bg-blue-100' : 
-                  'bg-gray-50 hover:bg-gray-100 text-gray-800'}`;
-      button.dataset.lessonId = lesson.id;
-      button.dataset.courseId = courseId;
-      
-      const leftSide = document.createElement('div');
-      leftSide.className = "flex items-center";
-      
-      let icon;
-      // Choose icon based on content type
-      if (lesson.contentType === 'document') {
-        if (lesson.documentType === 'powerpoint') {
-          icon = isDone ? '<i class="fas fa-check-circle text-green-500 mr-3"></i>' : 
-                 isStarted ? '<i class="fas fa-file-powerpoint text-blue-500 mr-3"></i>' :
-                 '<i class="fas fa-file-powerpoint text-gray-300 mr-3"></i>';
-        } else if (lesson.documentType === 'word') {
-          icon = isDone ? '<i class="fas fa-check-circle text-green-500 mr-3"></i>' : 
-                 isStarted ? '<i class="fas fa-file-word text-blue-500 mr-3"></i>' :
-                 '<i class="fas fa-file-word text-gray-300 mr-3"></i>';
-        }
-      } else {
-        // Default video icon
-        icon = isDone ? '<i class="fas fa-check-circle text-green-500 mr-3"></i>' : 
-               isStarted ? '<i class="fas fa-play-circle text-blue-500 mr-3"></i>' : 
-               '<i class="fas fa-circle text-gray-300 mr-3"></i>';
-      }
-      
-      leftSide.innerHTML = icon + `<span>${lesson.title}</span>`;
-      
-      const rightSide = document.createElement('div');
-      rightSide.className = "flex items-center";
-      
-      const progressText = document.createElement('span');
-      progressText.className = "text-xs mr-2";
-      if (isDone) {
-        progressText.textContent = "Completed";
-        progressText.className += " text-green-600";
-      } else if (isStarted) {
-        progressText.textContent = `${lessonProgress.toFixed(0)}%`;
-        progressText.className += " text-blue-600";
-      }
-      
-      const arrowIcon = document.createElement('span');
-      arrowIcon.className = "lesson-icon text-gray-400";
-      arrowIcon.innerHTML = '<i class="fas fa-chevron-right"></i>';
-      
-      rightSide.appendChild(progressText);
-      rightSide.appendChild(arrowIcon);
-      
-      button.appendChild(leftSide);
-      button.appendChild(rightSide);
-      
-      if (isEnrolled) {
-        // Choose appropriate open function based on content type
-        button.onclick = () => {
-          if (lesson.contentType === 'document') {
-            openDocument(lesson);
-          } else {
-            openVideo(lesson);
-          }
-        };
-      } else {
-        button.disabled = true;
-        button.classList.add('opacity-50', 'cursor-not-allowed');
-        button.onclick = (e) => {
-          e.preventDefault();
-          alert('Please enroll in this course to access lessons');
-        };
-      }
-      
-      return button;
-    }
-
-    // Replace the existing populateCourseTree function with this corrected version
-    function populateCourseTree() {
-      const courseTreeList = document.getElementById('courseTreeList');
-      courseTreeList.innerHTML = '';  // Clear existing content
-
-      // Get current filter settings
-      const showOnlyEnrolled = localStorage.getItem('courseTreeFilter') === 'enrolled';
-      
-      // Get all courses based on filter
-      let displayCourses = [...courses];
-      if (showOnlyEnrolled) {
-        displayCourses = courses.filter(course => checkEnrollmentStatus(course.id));
-      }
-      
-      // If empty after filtering
-      if (displayCourses.length === 0) {
-        const emptyState = document.createElement('div');
-        emptyState.className = "text-center py-4 text-sm text-gray-500";
-        emptyState.innerHTML = `
-          <i class="fas fa-folder-open text-gray-400 text-2xl mb-2"></i>
-          <p>No courses found</p>
-        `;
-        courseTreeList.appendChild(emptyState);
-        return;
-      }
-
-      // Create DOM elements for each course
-      displayCourses.forEach(course => {
-        const isEnrolled = checkEnrollmentStatus(course.id);
-        
-        // Course item
-        const li = document.createElement('li');
-        li.className = `course-tree-item mb-2 overflow-hidden ${isEnrolled ? 'enrolled pl-2' : 'pl-2'}`;
-        li.dataset.courseId = course.id;
-        
-        // Course header
-        const courseHeader = document.createElement('div');
-        courseHeader.className = "flex items-center justify-between py-2 px-1 hover:bg-gray-50 rounded cursor-pointer";
-        
-        // Left side with toggle
-        const leftSide = document.createElement('div');
-        leftSide.className = "flex items-center flex-grow min-w-0";
-        
-        const toggleIcon = document.createElement('span');
-        toggleIcon.className = "course-tree-toggle text-gray-400 mr-2";
-        toggleIcon.innerHTML = '<i class="fas fa-chevron-right"></i>';
-        
-        const courseIcon = document.createElement('span');
-        courseIcon.className = "mr-2";
-        courseIcon.innerHTML = `<i class="fas fa-book ${isEnrolled ? 'text-brand-purple' : 'text-gray-400'}"></i>`;
-        
-        const courseTitle = document.createElement('span');
-        courseTitle.className = "truncate font-medium text-sm";
-        courseTitle.textContent = course.title;
-        
-        leftSide.appendChild(toggleIcon);
-        leftSide.appendChild(courseIcon);
-        leftSide.appendChild(courseTitle);
-        
-        courseHeader.appendChild(leftSide);
-        
-        // Lessons container (initially hidden)
-        const lessonsContainer = document.createElement('div');
-        lessonsContainer.className = "course-tree-lessons ml-4";
-        
-        // Create lesson items for this course
-        course.lessons.forEach(lesson => {
-          const lessonCompleted = isLessonCompleted(course.id, lesson.id);
-          const lessonProgress = getStoredProgress(course.id, lesson.id) * 100;
-          const lessonStarted = lessonProgress > 0 && !lessonCompleted;
-          
-          const lessonItem = document.createElement('div');
-          lessonItem.className = `course-tree-lesson flex items-center justify-between py-1.5 px-2 hover:bg-gray-50 ${!isEnrolled ? 'opacity-50' : ''}`;
-          lessonItem.dataset.lessonId = lesson.id;
-          
-          // Lesson title with status icon
-          const lessonLeft = document.createElement('div');
-          lessonLeft.className = "flex items-center flex-grow min-w-0";
-          
-          let statusIcon;
-          if (lessonCompleted) {
-            statusIcon = '<i class="fas fa-check-circle text-green-500 mr-2"></i>';
-          } else if (lessonStarted) {
-            if (lesson.contentType === 'document') {
-              if (lesson.documentType === 'powerpoint') {
-                statusIcon = '<i class="fas fa-file-powerpoint text-blue-500 mr-2"></i>';
-              } else if (lesson.documentType === 'word') {
-                statusIcon = '<i class="fas fa-file-word text-blue-500 mr-2"></i>';
-              } else {
-                statusIcon = '<i class="fas fa-file-alt text-blue-500 mr-2"></i>';
-              }
-            } else {
-              statusIcon = '<i class="fas fa-play-circle text-blue-500 mr-2"></i>';
-            }
-          } else {
-            if (lesson.contentType === 'document') {
-              if (lesson.documentType === 'powerpoint') {
-                statusIcon = '<i class="fas fa-file-powerpoint text-gray-300 mr-2"></i>';
-              } else if (lesson.documentType === 'word') {
-                statusIcon = '<i class="fas fa-file-word text-gray-300 mr-2"></i>';
-              } else {
-                statusIcon = '<i class="fas fa-file-alt text-gray-300 mr-2"></i>';
-              }
-            } else {
-              statusIcon = '<i class="fas fa-circle text-gray-300 mr-2"></i>';
-            }
-          }
-          
-          lessonLeft.innerHTML = `${statusIcon}<span class="truncate text-sm">${lesson.title}</span>`;
-          
-          lessonItem.appendChild(lessonLeft);
-          
-          // Add click handler to open the lesson
-          if (isEnrolled) {
-            lessonItem.classList.add('cursor-pointer');
-            lessonItem.addEventListener('click', () => {
-              const lessonObj = course.lessons.find(l => l.id === lesson.id);
-              if (lessonObj) {
-                if (lessonObj.contentType === 'document') {
-                  openDocument(lessonObj);
-                } else {
-                  openVideo(lessonObj);
-                }
-              }
+          const browseBtn = document.getElementById('browseCoursesBtn');
+          if (browseBtn) {
+            browseBtn.addEventListener('click', () => {
+              this.data.currentView = 'courses';
+              this.render();
             });
           }
           
-          lessonsContainer.appendChild(lessonItem);
+          return;
+        }
+        
+        // Create progress cards for each enrolled course
+        const progressGrid = document.createElement('div');
+        progressGrid.className = 'grid grid-cols-1 md:grid-cols-2 gap-8';
+        
+        enrolledCourses.forEach(course => {
+          // Calculate course progress
+          let totalProgress = 0;
+          let completedLessons = 0;
+          
+          course.lessons.forEach(lesson => {
+            const progress = this.getLessonProgress(course.id, lesson.id);
+            totalProgress += progress;
+            if (progress >= 1) completedLessons++;
+          });
+          
+          const averageProgress = course.lessons.length > 0 ? totalProgress / course.lessons.length : 0;
+          const progressPercent = Math.round(averageProgress * 100);
+          
+          // Create progress card
+          const card = document.createElement('div');
+          card.className = 'bg-white rounded-lg shadow-md overflow-hidden border border-gray-200';
+          
+          card.innerHTML = `
+            <div class="p-5">
+              <div class="flex items-center mb-4">
+                <div class="flex-shrink-0 h-12 w-12 bg-brand-purple bg-opacity-10 rounded-full flex items-center justify-center mr-4">
+                  <i class="fas fa-book text-brand-purple text-xl"></i>
+                </div>
+                <div>
+                  <h3 class="text-lg font-bold text-gray-800">${course.title}</h3>
+                  <p class="text-sm text-gray-600">${course.instructor}</p>
+                </div>
+              </div>
+              
+              <div class="mb-4">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-sm font-medium text-gray-700">Overall Progress</span>
+                  <span class="text-sm text-gray-600">${completedLessons} of ${course.lessons.length} completed</span>
+                </div>
+                <div class="progress-bar">
+                  <div class="progress-bar-fill" style="width: ${progressPercent}%"></div>
+                </div>
+              </div>
+              
+              <div class="border-t border-gray-100 pt-4">
+                <div class="flex items-center justify-between mb-3">
+                  <h4 class="font-medium text-gray-700">Recent Lessons</h4>
+                  <button class="resume-course-btn text-sm text-brand-purple hover:underline" data-course-id="${course.id}">
+                    Resume Course
+                  </button>
+                </div>
+                
+                <div class="space-y-2 mb-3">
+                  ${course.lessons.slice(0, 3).map(lesson => {
+                    const progress = this.getLessonProgress(course.id, lesson.id);
+                    let statusIcon, statusClass;
+                    
+                    if (progress >= 1) {
+                      statusIcon = '<i class="fas fa-check-circle text-green-500 mr-2"></i>';
+                      statusClass = 'text-green-600';
+                    } else if (progress > 0) {
+                      statusIcon = '<i class="fas fa-spinner text-blue-500 mr-2"></i>';
+                      statusClass = 'text-blue-600';
+                    } else {
+                      statusIcon = '<i class="fas fa-circle text-gray-300 mr-2"></i>';
+                      statusClass = 'text-gray-500';
+                    }
+                    
+                    return `
+                      <button class="lesson-progress-btn flex items-center justify-between w-full text-left p-2 rounded-md hover:bg-gray-50" 
+                              data-course-id="${course.id}" data-lesson-id="${lesson.id}">
+                        <div class="flex items-center">
+                          ${statusIcon}
+                          <span class="text-sm ${progress > 0 ? 'text-gray-800' : 'text-gray-600'}">${lesson.title}</span>
+                        </div>
+                        <span class="text-xs ${statusClass}">
+                          ${progress >= 1 ? 'Completed' : progress > 0 ? `${Math.round(progress * 100)}%` : 'Not started'}
+                        </span>
+                      </button>
+                    `;
+                  }).join('')}
+                </div>
+                
+                <div class="text-center">
+                  <button class="view-all-lessons-btn px-3 py-1 border border-gray-200 rounded text-sm text-gray-600 hover:bg-gray-50"
+                          data-course-id="${course.id}">
+                    View All Lessons
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+          
+          // Add click handlers
+          const resumeCourseBtn = card.querySelector('.resume-course-btn');
+          const viewAllBtn = card.querySelector('.view-all-lessons-btn');
+          const lessonBtns = card.querySelectorAll('.lesson-progress-btn');
+          
+          resumeCourseBtn.addEventListener('click', () => {
+            this.data.currentCourseId = course.id;
+            
+            // Find first incomplete lesson
+            const firstIncomplete = course.lessons.find(lesson => 
+              this.getLessonProgress(course.id, lesson.id) < 1
+            );
+            
+            if (firstIncomplete) {
+              this.data.currentLessonId = firstIncomplete.id;
+            } else {
+              // If all complete, go to first lesson
+              this.data.currentLessonId = course.lessons[0]?.id;
+            }
+            
+            this.data.currentView = 'course-details';
+            this.render();
+          });
+          
+          viewAllBtn.addEventListener('click', () => {
+            this.data.currentCourseId = course.id;
+            this.data.currentView = 'course-details';
+            this.render();
+          });
+          
+          lessonBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+              this.data.currentCourseId = btn.dataset.courseId;
+              this.data.currentLessonId = btn.dataset.lessonId;
+              this.data.currentView = 'course-details';
+              this.render();
+            });
+          });
+          
+          progressGrid.appendChild(card);
         });
         
-        // Add toggle functionality
-        courseHeader.addEventListener('click', () => {
-          toggleIcon.classList.toggle('rotated');
-          lessonsContainer.classList.toggle('expanded');
+        container.innerHTML = '';
+        container.appendChild(progressGrid);
+      },
+
+      renderCourseDetailsPage() {
+        const page = document.createElement('div');
+        page.id = 'courseDetailPage';
+        page.className = 'block';
+        
+        // Find the current course
+        const course = this.data.courses.find(c => c.id === this.data.currentCourseId);
+        if (!course) {
+          // If course not found, return to courses
+          this.data.currentView = 'courses';
+          return this.renderCoursesPage();
+        }
+        
+        // Find the current lesson if any
+        const lesson = this.data.currentLessonId ? 
+          course.lessons.find(l => l.id === this.data.currentLessonId) : null;
+        
+        // Build the page header
+        page.innerHTML = `
+          <div class="mb-8 border-b border-gray-200 pb-4">
+            <button id="backToCourses" class="flex items-center text-gray-600 mb-4 hover:text-brand-purple">
+              <i class="fas fa-arrow-left mr-2"></i> Back to All Courses
+            </button>
+            
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">${course.title}</h1>
+            
+            <div class="flex flex-wrap items-center gap-3 mb-4">
+              <span class="text-sm text-gray-600">
+                <i class="fas fa-user-tie text-gray-500 mr-1"></i> ${course.instructor}
+              </span>
+              <span class="text-sm text-gray-600">
+                <i class="fas fa-clock text-gray-500 mr-1"></i> ${course.duration}
+              </span>
+              <span class="text-sm text-gray-600">
+                <i class="fas fa-book text-gray-500 mr-1"></i> ${course.lessons.length} lessons
+              </span>
+            </div>
+            
+            <p class="text-gray-700 mb-4">${course.description}</p>
+            
+            <div class="flex items-center">
+              ${this.checkEnrollmentStatus(course.id) ? 
+                `<div class="bg-green-100 text-green-600 px-3 py-1 rounded-full text-sm font-medium flex items-center">
+                  <i class="fas fa-user-check mr-2"></i> Enrolled
+                </div>` : 
+                `<button id="enrollBtn" data-course-id="${course.id}" class="px-4 py-2 bg-brand-purple text-white rounded-md hover:bg-purple-700">
+                  <i class="fas fa-user-plus mr-2"></i> Enroll in Course
+                </button>`
+              }
+            </div>
+          </div>
+          
+          <!-- Content grid -->
+          <div class="grid grid-cols-12 gap-6">
+            <!-- Sidebar -->
+            <div class="col-span-12 md:col-span-4 lg:col-span-3">
+              <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div class="p-4 border-b border-gray-200">
+                  <h2 class="font-semibold text-gray-800">Course Content</h2>
+                </div>
+                
+                <div class="p-2">
+                  <ul class="divide-y divide-gray-100">
+                    ${course.lessons.map((l, index) => `
+                      <li class="py-2">
+                        <button data-lesson-id="${l.id}" class="lesson-select-btn w-full text-left px-2 py-1 rounded ${l.id === this.data.currentLessonId ? 'bg-gray-100 font-medium' : 'hover:bg-gray-50'}">
+                          <div class="flex items-center">
+                            <div class="flex-shrink-0 w-8 text-center">
+                              ${this.isLessonCompleted(course.id, l.id) ? 
+                                '<i class="fas fa-check-circle text-green-500"></i>' : 
+                                `<span class="text-gray-400">${index + 1}</span>`}
+                            </div>
+                            <div class="ml-2 text-sm">
+                              <div class="text-gray-800 truncate">${l.title}</div>
+                              <div class="text-gray-500 text-xs">
+                                ${l.contentType === 'video' ? 
+                                  '<i class="fas fa-play-circle mr-1"></i> Video' : 
+                                  `<i class="fas fa-file-${l.documentType === 'powerpoint' ? 'powerpoint' : 'word'} mr-1"></i> ${l.documentType === 'powerpoint' ? 'PowerPoint' : 'Word Document'}`}
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      </li>
+                    `).join('')}
+                  </ul>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Main content -->
+            <div class="col-span-12 md:col-span-8 lg:col-span-9">
+              ${lesson ? this.renderLessonContent(lesson, course.id) : `
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
+                  <div class="text-gray-400 mb-4"><i class="fas fa-book-open text-5xl"></i></div>
+                  <h3 class="text-xl font-semibold text-gray-700 mb-2">Select a Lesson</h3>
+                  <p class="text-gray-500">Choose a lesson from the sidebar to start learning</p>
+                </div>
+              `}
+            </div>
+          </div>
+        `;
+        
+        // Add event listeners after the DOM is created
+        setTimeout(() => {
+          // Back button
+          const backButton = document.getElementById('backToCourses');
+          if (backButton) {
+            backButton.addEventListener('click', () => {
+              this.data.currentView = 'courses';
+              this.render();
+            });
+          }
+          
+          // Enroll button
+          const enrollBtn = document.getElementById('enrollBtn');
+          if (enrollBtn) {
+            enrollBtn.addEventListener('click', () => {
+              this.enrollInCourse(enrollBtn.dataset.courseId);
+            });
+          }
+          
+          // Lesson select buttons
+          const lessonBtns = document.querySelectorAll('.lesson-select-btn');
+          lessonBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+              this.data.currentLessonId = btn.dataset.lessonId;
+              this.render();
+            });
+          });
+        }, 0);
+        
+        return page;
+      },
+
+      renderLessonContent(lesson, courseId) {
+        // Basic placeholder content based on lesson type
+        if (lesson.contentType === 'video') {
+          // Generate a unique ID for this YouTube player
+          const playerId = `youtube-player-${Date.now()}`;
+          
+          // Create the video container
+          const videoContent = `
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div class="p-4 border-b border-gray-200">
+                <h2 class="font-semibold text-gray-800">${lesson.title}</h2>
+              </div>
+              
+              <div class="aspect-video bg-black relative">
+                <div id="${playerId}"></div>
+              </div>
+              
+              <div class="p-4">
+                <div class="mb-4">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="text-sm font-medium text-gray-700">Video Progress</span>
+                    <span id="videoProgressText" class="text-xs text-gray-600">0%</span>
+                  </div>
+                  <div class="progress-bar">
+                    <div id="videoProgressBar" class="progress-bar-fill" style="width: 0%"></div>
+                  </div>
+                </div>
+                
+                <h3 class="text-sm font-medium text-gray-500 mb-3">Additional Resources</h3>
+                <div class="space-y-2">
+                  ${lesson.additionalResources ? lesson.additionalResources.map(res => `
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div class="flex items-center">
+                        <i class="fas fa-file-${res.type === 'pdf' ? 'pdf text-red-600' : res.type === 'zip' ? 'archive text-purple-600' : 'alt text-gray-600'} mr-2 text-lg"></i>
+                        <div>
+                          <div class="font-medium">${res.title}</div>
+                          <div class="text-sm text-gray-600">${res.description || 'Supporting material'}</div>
+                        </div>
+                      </div>
+                      <a href="${res.url}" target="_blank" class="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded-md">
+                        Download
+                      </a>
+                    </div>
+                  `).join('') : ''}
+                </div>
+              </div>
+            </div>
+          `;
+          
+          // Initialize the player after the DOM is updated
+          setTimeout(() => {
+            // First, load the YouTube API if it's not already loaded
+            if (!window.YT) {
+              const tag = document.createElement('script');
+              tag.src = 'https://www.youtube.com/iframe_api';
+              const firstScriptTag = document.getElementsByTagName('script')[0];
+              firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+              
+              window.onYouTubeIframeAPIReady = () => {
+                this.initializeYoutubePlayer(playerId, lesson, courseId);
+              };
+            } else {
+              this.initializeYoutubePlayer(playerId, lesson, courseId);
+            }
+          }, 0);
+          
+          return videoContent;
+        } else if (lesson.contentType === 'document') {
+          const isSlides = lesson.documentType === 'powerpoint';
+          return `
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div class="p-4 border-b border-gray-200">
+                <h2 class="font-semibold text-gray-800">${lesson.title}</h2>
+              </div>
+              
+              <div class="bg-gray-50 border-b border-gray-200 p-4">
+                <div class="flex items-center justify-between mb-4">
+                  <button id="prevBtn" class="px-3 py-1 bg-gray-200 rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fas fa-chevron-left"></i>
+                  </button>
+                  <span id="pageCounter" class="text-sm font-medium">
+                    ${isSlides ? `Slide 1 of ${lesson.totalSlides || 1}` : `Page 1 of ${lesson.pageCount || 1}`}
+                  </span>
+                  <button id="nextBtn" class="px-3 py-1 bg-gray-200 rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fas fa-chevron-right"></i>
+                  </button>
+                </div>
+                
+                <div id="documentFrame" class="w-full min-h-[500px] bg-white rounded border border-gray-200">
+                  <iframe 
+                    src="https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(lesson.documentUrl)}" 
+                    width="100%" 
+                    height="500" 
+                    frameborder="0"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-presentation">
+                  </iframe>
+                </div>
+                
+                <div class="mt-3 flex justify-end">
+                  <a href="https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(lesson.documentUrl)}" 
+                     target="_blank" class="text-sm text-brand-purple hover:underline flex items-center">
+                    <i class="fas fa-external-link-alt mr-1"></i> Open in ${isSlides ? 'PowerPoint' : 'Word'} Online
+                  </a>
+                </div>
+              </div>
+              
+              <div class="p-4">
+                <h3 class="text-sm font-medium text-gray-500 mb-3">Additional Resources</h3>
+                <div class="space-y-2">
+                  ${lesson.additionalResources ? lesson.additionalResources.map(res => `
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div class="flex items-center">
+                        <i class="fas fa-file-${res.type === 'pdf' ? 'pdf text-red-600' : res.type === 'zip' ? 'archive text-purple-600' : 'alt text-gray-600'} mr-2 text-lg"></i>
+                        <div>
+                          <div class="font-medium">${res.title}</div>
+                          <div class="text-sm text-gray-600">${res.description || 'Supporting material'}</div>
+                        </div>
+                      </div>
+                      <a href="${res.url}" target="_blank" class="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded-md">
+                        Download
+                      </a>
+                    </div>
+                  `).join('') : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        }
+        
+        // Default case - should not reach here
+        return `<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <p>Unknown lesson type: ${lesson.contentType}</p>
+        </div>`;
+      },
+
+      getVideoDuration(videoId) {
+        // We don't actually need to pre-fetch the duration since we can get it from the player
+        // Just use a default start time of 0 if we don't have a progress value
+        return 0; // Default duration until we get the actual one from the player
+      },
+
+      initializeYoutubePlayer(playerId, lesson, courseId) {
+        const videoId = this.getYouTubeVideoId(lesson.videoUrl);
+        if (!videoId) return;
+        
+        // Get current progress from user data (if any)
+        const currentProgress = this.getLessonProgress(courseId, lesson.id) || 0;
+        
+        const player = new YT.Player(playerId, {
+          videoId: videoId,
+          playerVars: {
+            autoplay: 0,
+            rel: 0,
+            modestbranding: 1
+          },
+          events: {
+            onReady: (event) => {
+              // Store video duration when available
+              const duration = event.target.getDuration();
+              
+              // If there's saved progress, seek to the right position once player is ready
+              if (currentProgress > 0) {
+                // Calculate time position based on percentage
+                const seekToTime = Math.floor(currentProgress * duration);
+                event.target.seekTo(seekToTime, true);
+              }
+              
+              // Update progress UI with existing progress
+              const progressBar = document.getElementById('videoProgressBar');
+              const progressText = document.getElementById('videoProgressText');
+              
+              if (progressBar && progressText) {
+                const progressPercent = Math.round(currentProgress * 100);
+                progressBar.style.width = `${progressPercent}%`;
+                progressText.textContent = `${progressPercent}%`;
+              }
+            },
+            onStateChange: (event) => {
+              // When video is playing, track progress
+              if (event.data === YT.PlayerState.PLAYING) {
+                // Update progress every 5 seconds
+                this.videoProgressInterval = setInterval(() => {
+                  const player = event.target;
+                  const currentTime = player.getCurrentTime();
+                  const duration = player.getDuration();
+                  
+                  if (duration > 0) {
+                    // Calculate progress as a value between 0 and 1
+                    const progress = Math.min(currentTime / duration, 1);
+                    
+                    // Update the progress bar
+                    const progressBar = document.getElementById('videoProgressBar');
+                    const progressText = document.getElementById('videoProgressText');
+                    
+                    if (progressBar && progressText) {
+                      const progressPercent = Math.round(progress * 100);
+                      progressBar.style.width = `${progressPercent}%`;
+                      progressText.textContent = `${progressPercent}%`;
+                    }
+                    
+                    // Save progress to user data
+                    this.updateLessonProgress(courseId, lesson.id, progress);
+                  }
+                }, 5000); // Update every 5 seconds
+              } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
+                // Clear the interval when video is paused or ended
+                clearInterval(this.videoProgressInterval);
+                
+                // If video ended, mark as completed
+                if (event.data === YT.PlayerState.ENDED) {
+                  this.updateLessonProgress(courseId, lesson.id, 1);
+                  
+                  const progressBar = document.getElementById('videoProgressBar');
+                  const progressText = document.getElementById('videoProgressText');
+                  
+                  if (progressBar && progressText) {
+                    progressBar.style.width = '100%';
+                    progressText.textContent = '100%';
+                  }
+                }
+              }
+            }
+          }
         });
         
-        li.appendChild(courseHeader);
-        li.appendChild(lessonsContainer);
+        return player;
+      },
+
+      updateLessonProgress(courseId, lessonId, progress) {
+        // Make sure course and lesson data structures exist
+        if (!this.userData.courses[courseId]) {
+          this.userData.courses[courseId] = { lessons: {} };
+        }
         
-        courseTreeList.appendChild(li);
-      });
-    }
+        if (!this.userData.courses[courseId].lessons) {
+          this.userData.courses[courseId].lessons = {};
+        }
+        
+        if (!this.userData.courses[courseId].lessons[lessonId]) {
+          this.userData.courses[courseId].lessons[lessonId] = {};
+        }
+        
+        // Only update if the new progress is greater
+        const currentProgress = this.userData.courses[courseId].lessons[lessonId].progress || 0;
+        if (progress > currentProgress) {
+          this.userData.courses[courseId].lessons[lessonId].progress = progress;
+          this.userData.courses[courseId].lessons[lessonId].lastAccessed = Date.now();
+          
+          // Save to localStorage
+          this.saveUserData();
+          
+          // If progress is 100%, show a toast notification
+          if (progress >= 1 && currentProgress < 1) {
+            this.showToast('Lesson completed!', 'success');
+          }
+        }
+      },
 
-    // Add required setup course tree controls function if it's missing
-    function setupCourseTreeControls() {
-      // Filter buttons
-      const allFilterBtn = document.getElementById('filterAllCourses');
-      const enrolledFilterBtn = document.getElementById('filterEnrolledCourses');
-      
-      if (!allFilterBtn || !enrolledFilterBtn) {
-        console.error("Filter buttons not found in the DOM");
-        return;
-      }
-      
-      // Set initial state from localStorage
-      const currentFilter = localStorage.getItem('courseTreeFilter') || 'all';
-      if (currentFilter === 'enrolled') {
-        allFilterBtn.classList.remove('active');
-        enrolledFilterBtn.classList.add('active');
-      } else {
-        allFilterBtn.classList.add('active');
-        enrolledFilterBtn.classList.remove('active');
-      }
-      
-      // All courses filter
-      allFilterBtn.addEventListener('click', () => {
-        allFilterBtn.classList.add('active');
-        enrolledFilterBtn.classList.remove('active');
-        localStorage.setItem('courseTreeFilter', 'all');
-        populateCourseTree();
-      });
-      
-      // Enrolled courses filter
-      enrolledFilterBtn.addEventListener('click', () => {
-        enrolledFilterBtn.classList.add('active');
-        allFilterBtn.classList.remove('active');
-        localStorage.setItem('courseTreeFilter', 'enrolled');
-        populateCourseTree();
-      });
-    }
+      getYouTubeVideoId(url) {
+        if (!url) return null;
+        
+        // Handle different YouTube URL formats
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+        const match = url.match(regExp);
+        
+        return (match && match[2].length === 11) ? match[2] : null;
+      },
 
-    // Make sure we have a simple sidebar toggle function
-    function setupSidebarToggle() {
-      const sidebar = document.getElementById('sidebar');
-      const sidebarToggle = document.getElementById('sidebarToggle');
-      const expandButton = document.getElementById('expandButton');
+      // More component methods...
       
-      if (!sidebar || !sidebarToggle || !expandButton) {
-        console.error("Sidebar elements not found in the DOM");
-        return;
+      // Utility methods
+      checkEnrollmentStatus(courseId) {
+        return this.userData.courses[courseId]?.enrolled === true;
+      },
+      
+      filterCoursesBySearch(courses, query) {
+        if (!query) return courses;
+        
+        const searchQuery = query.toLowerCase().trim();
+        
+        return courses.filter(course => 
+          course.title.toLowerCase().includes(searchQuery) ||
+          course.description.toLowerCase().includes(searchQuery) ||
+          course.instructor.toLowerCase().includes(searchQuery) ||
+          course.lessons.some(lesson => lesson.title.toLowerCase().includes(searchQuery))
+        );
+      },
+      
+      // Event handlers
+      setupCoursesPageEventListeners() {
+        // Example: Handle enroll/unenroll button clicks through delegation
+        const coursesContainer = document.getElementById('courses');
+        if (coursesContainer) {
+          coursesContainer.addEventListener('click', (e) => {
+            const enrollButton = e.target.closest('[data-action="enroll"]');
+            const unenrollButton = e.target.closest('[data-action="unenroll"]');
+            
+            if (enrollButton) {
+              const courseId = enrollButton.dataset.courseId;
+              this.enrollInCourse(courseId);
+            } else if (unenrollButton) {
+              const courseId = unenrollButton.dataset.courseId;
+              this.unenrollFromCourse(courseId);
+            }
+          });
+        }
+        
+        // Setup search functionality
+        const searchInput = document.getElementById('searchInput');
+        const clearSearch = document.getElementById('clearSearch');
+        
+        if (searchInput && clearSearch) {
+          searchInput.addEventListener('input', () => {
+            this.data.filters.searchQuery = searchInput.value;
+            
+            if (searchInput.value) {
+              clearSearch.classList.remove('hidden');
+            } else {
+              clearSearch.classList.add('hidden');
+            }
+            
+            this.renderCourseCards();
+          });
+          
+          clearSearch.addEventListener('click', () => {
+            searchInput.value = '';
+            this.data.filters.searchQuery = '';
+            clearSearch.classList.add('hidden');
+            this.renderCourseCards();
+          });
+        }
+      },
+      
+      // Course management methods
+      enrollInCourse(courseId) {
+        if (!this.userData.courses[courseId]) {
+          this.userData.courses[courseId] = { lessons: {} };
+        }
+        
+        this.userData.courses[courseId].enrolled = true;
+        this.userData.courses[courseId].enrolledAt = Date.now();
+        
+        this.saveUserData();
+        this.render(); // Re-render everything to reflect changes
+        
+        this.showToast('You have successfully enrolled in the course', 'success');
+      },
+      
+      unenrollFromCourse(courseId) {
+        if (confirm("Are you sure you want to unenroll from this course? Your progress will be preserved, but the course will be removed from your active courses.")) {
+          if (this.userData.courses[courseId]) {
+            this.userData.courses[courseId].enrolled = false;
+            this.saveUserData();
+            this.render();
+            this.showToast('You have unenrolled from the course', 'info');
+          }
+        }
+      },
+      
+      // Toast notification method
+      showToast(message, type = 'info') {
+        // Check if toast container exists
+        let toastContainer = document.getElementById('toastContainer');
+        
+        if (!toastContainer) {
+          // Create toast container if it doesn't exist
+          toastContainer = document.createElement('div');
+          toastContainer.id = 'toastContainer';
+          toastContainer.className = 'fixed bottom-4 right-4 z-50 flex flex-col gap-2';
+          document.body.appendChild(toastContainer);
+        }
+        
+        // Create toast element
+        const toast = document.createElement('div');
+        toast.className = 'px-4 py-2 rounded-lg shadow-lg flex items-center justify-between min-w-[300px] animate-fade-in';
+        
+        // Set color based on type
+        switch (type) {
+          case 'success':
+            toast.classList.add('bg-green-100', 'text-green-800', 'border-l-4', 'border-green-500');
+            break;
+          case 'error':
+            toast.classList.add('bg-red-100', 'text-red-800', 'border-l-4', 'border-red-500');
+            break;
+          case 'warning':
+            toast.classList.add('bg-yellow-100', 'text-yellow-800', 'border-l-4', 'border-yellow-500');
+            break;
+          default:
+            toast.classList.add('bg-blue-100', 'text-blue-800', 'border-l-4', 'border-blue-500');
+        }
+        
+        // Icon based on type
+        let icon;
+        switch (type) {
+          case 'success':
+            icon = '<i class="fas fa-check-circle text-green-500 mr-2"></i>';
+            break;
+          case 'error':
+            icon = '<i class="fas fa-exclamation-circle text-red-500 mr-2"></i>';
+            break;
+          case 'warning':
+            icon = '<i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i>';
+            break;
+          default:
+            icon = '<i class="fas fa-info-circle text-blue-500 mr-2"></i>';
+        }
+        
+        // Toast content
+        toast.innerHTML = `
+          <div class="flex items-center">
+            ${icon}
+            <span>${message}</span>
+          </div>
+          <button class="text-gray-400 hover:text-gray-600 ml-4">
+            <i class="fas fa-times"></i>
+          </button>
+        `;
+        
+        // Add to container
+        toastContainer.appendChild(toast);
+        
+        // Handle close button
+        const closeButton = toast.querySelector('button');
+        closeButton.addEventListener('click', () => {
+          toast.classList.add('opacity-0');
+          setTimeout(() => {
+            toast.remove();
+          }, 300);
+        });
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+          toast.classList.add('opacity-0');
+          setTimeout(() => {
+            toast.remove();
+          }, 300);
+        }, 5000);
       }
-      
-      // Toggle sidebar collapsed state
-      sidebarToggle.addEventListener('click', function() {
-        sidebar.classList.add('collapsed');
-        expandButton.classList.add('visible');
-        localStorage.setItem('sidebarCollapsed', 'true');
-      });
-      
-      // Expand sidebar when clicking expand button
-      expandButton.addEventListener('click', function() {
-        sidebar.classList.remove('collapsed');
-        expandButton.classList.remove('visible');
-        localStorage.setItem('sidebarCollapsed', 'false');
-      });
-      
-      // Check for saved state
-      if (localStorage.getItem('sidebarCollapsed') === 'true') {
-        sidebar.classList.add('collapsed');
-        expandButton.classList.add('visible');
-      }
-    }
+    };
 
-    // Configuration object with full YouTube URLs and document content
+    // Platform configuration with course data
     const platformConfig = {
       title: "Learning Platform",
-      pageTitle: "My Learning",
+      pageTitle: "My Courses",
       courses: [
         {
           id: "course-1",
@@ -1156,7 +1750,21 @@
               id: "lesson-1", 
               title: "Introduction to Python", 
               contentType: "video",
-              videoUrl: "https://www.youtube.com/watch?v=K5KVEU3aaeQ"
+              videoUrl: "https://www.youtube.com/watch?v=K5KVEU3aaeQ",
+              additionalResources: [
+                {
+                  title: "Introduction Slides",
+                  type: "pdf",
+                  description: "Downloadable slides from the lecture",
+                  url: "https://sample-videos.com/pdf/Sample-pdf-5mb.pdf"
+                },
+                {
+                  title: "Python Installation Guide",
+                  type: "word",
+                  description: "Step-by-step installation instructions",
+                  url: "https://sample-videos.com/doc/Sample-doc-file-100kb.doc"
+                }
+              ]
             },
             { 
               id: "lesson-2", 
@@ -1164,13 +1772,43 @@
               contentType: "document",
               documentType: "powerpoint",
               documentUrl: "https://sample-videos.com/ppt/Sample-PPT-File-1000kb.ppt", 
-              totalSlides: 17
+              totalSlides: 17,
+              additionalResources: [
+                {
+                  title: "Code Examples",
+                  type: "zip",
+                  description: "Download code examples from the presentation",
+                  url: "https://sample-videos.com/zip/Sample-zip-file-100kb.zip"
+                }
+              ]
             },
             { 
               id: "lesson-3", 
               title: "Control Flow and Loops", 
               contentType: "video",
-              videoUrl: "https://www.youtube.com/watch?v=6iF8Xb7Z3wQ"
+              videoUrl: "https://www.youtube.com/watch?v=6iF8Xb7Z3wQ",
+              additionalResources: [
+                {
+                  title: "Practice Exercises",
+                  type: "pdf",
+                  description: "Exercises to practice control flow concepts",
+                  url: "https://sample-videos.com/pdf/Sample-pdf-5mb.pdf"
+                }
+              ]
+            },
+            { 
+              id: "lesson-4", 
+              title: "Functions and Modules", 
+              contentType: "video",
+              videoUrl: "https://www.youtube.com/watch?v=6iF8Xb7Z3wQ",
+              additionalResources: [
+                {
+                  title: "Function Reference",
+                  type: "pdf",
+                  description: "Quick reference for Python functions",
+                  url: "https://sample-videos.com/pdf/Sample-pdf-5mb.pdf"
+                }
+              ]
             }
           ]
         },
@@ -1183,1142 +1821,280 @@
           duration: "6.5 hours",
           lessons: [
             { 
-              id: "lesson-4", 
+              id: "lesson-5", 
               title: "JavaScript Fundamentals", 
               contentType: "video",
-              videoUrl: "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4" 
+              videoUrl: "https://www.youtube.com/watch?v=PkZNo7MFNFg",
+              additionalResources: [
+                {
+                  title: "JavaScript Cheatsheet",
+                  type: "pdf",
+                  description: "Quick reference for JavaScript syntax",
+                  url: "https://sample-videos.com/pdf/Sample-pdf-5mb.pdf"
+                }
+              ]
             },
             { 
-              id: "lesson-5", 
+              id: "lesson-6", 
               title: "Working with the DOM", 
               contentType: "document",
               documentType: "word",
-              documentUrl: "https://sample-videos.com/doc/Sample-doc-file-200kb.doc",
-              pageCount: 31
+              documentUrl: "https://sample-videos.com/doc/Sample-doc-file-5mb.doc",
+              pageCount: 31,
+              additionalResources: [
+                {
+                  title: "DOM Manipulation Examples",
+                  type: "zip",
+                  description: "Sample code for DOM manipulation",
+                  url: "https://sample-videos.com/zip/Sample-zip-file-100kb.zip"
+                }
+              ]
+            },
+            { 
+              id: "lesson-7", 
+              title: "Event Handling", 
+              contentType: "video",
+              videoUrl: "https://www.youtube.com/watch?v=XF1_MlZ5l6M",
+              additionalResources: [
+                {
+                  title: "Event Reference",
+                  type: "pdf",
+                  description: "Complete guide to JavaScript events",
+                  url: "https://sample-videos.com/pdf/Sample-pdf-5mb.pdf"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          id: "course-3",
+          title: "React for Beginners",
+          description: "Learn the fundamentals of React including components, state management, and hooks.",
+          image: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=3270&auto=format&fit=crop&ixlib=rb-4.0.3",
+          instructor: "David Chen",
+          duration: "10 hours",
+          lessons: [
+            { 
+              id: "lesson-8", 
+              title: "Introduction to React", 
+              contentType: "video",
+              videoUrl: "https://www.youtube.com/watch?v=Ke90Tje7VS0",
+              additionalResources: [
+                {
+                  title: "React Setup Guide",
+                  type: "pdf",
+                  description: "How to set up your React development environment",
+                  url: "https://sample-videos.com/pdf/Sample-pdf-5mb.pdf"
+                }
+              ]
+            },
+            { 
+              id: "lesson-9", 
+              title: "Components and Props", 
+              contentType: "document",
+              documentType: "powerpoint",
+              documentUrl: "https://sample-videos.com/ppt/Sample-PPT-File-1000kb.ppt", 
+              totalSlides: 24,
+              additionalResources: [
+                {
+                  title: "Component Examples",
+                  type: "zip",
+                  description: "Example React components",
+                  url: "https://sample-videos.com/zip/Sample-zip-file-100kb.zip"
+                }
+              ]
+            },
+            { 
+              id: "lesson-10", 
+              title: "State and Lifecycle", 
+              contentType: "video",
+              videoUrl: "https://www.youtube.com/watch?v=4ZAEBxGipoA",
+              additionalResources: [
+                {
+                  title: "State Management Patterns",
+                  type: "pdf",
+                  description: "Best practices for state management in React",
+                  url: "https://sample-videos.com/pdf/Sample-pdf-5mb.pdf"
+                }
+              ]
+            },
+            { 
+              id: "lesson-11", 
+              title: "Hooks in React", 
+              contentType: "document",
+              documentType: "word",
+              documentUrl: "https://sample-videos.com/doc/Sample-doc-file-5mb.doc",
+              pageCount: 42,
+              additionalResources: [
+                {
+                  title: "Hooks Reference",
+                  type: "pdf",
+                  description: "Complete guide to React Hooks",
+                  url: "https://sample-videos.com/pdf/Sample-pdf-5mb.pdf"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          id: "course-4",
+          title: "UI/UX Design Principles",
+          description: "Learn the fundamentals of creating user-friendly interfaces and experiences.",
+          image: "https://images.unsplash.com/photo-1565106430482-8f6e74349ca1?q=80&w=3270&auto=format&fit=crop&ixlib=rb-4.0.3",
+          instructor: "Sarah Miller",
+          duration: "7 hours",
+          lessons: [
+            { 
+              id: "lesson-12", 
+              title: "Introduction to UI/UX", 
+              contentType: "video",
+              videoUrl: "https://www.youtube.com/watch?v=jx5jmI0UlXU",
+              additionalResources: [
+                {
+                  title: "UI/UX Terminology",
+                  type: "pdf",
+                  description: "Glossary of common UI/UX terms",
+                  url: "https://sample-videos.com/pdf/Sample-pdf-5mb.pdf"
+                }
+              ]
+            },
+            { 
+              id: "lesson-13", 
+              title: "Color Theory for Digital Design", 
+              contentType: "document",
+              documentType: "powerpoint",
+              documentUrl: "https://sample-videos.com/ppt/Sample-PPT-File-1000kb.ppt", 
+              totalSlides: 35,
+              additionalResources: [
+                {
+                  title: "Color Palette Examples",
+                  type: "zip",
+                  description: "Sample color palettes for various applications",
+                  url: "https://sample-videos.com/zip/Sample-zip-file-100kb.zip"
+                }
+              ]
+            },
+            { 
+              id: "lesson-14", 
+              title: "Usability Testing Methods", 
+              contentType: "video",
+              videoUrl: "https://www.youtube.com/watch?v=O94kYyzqvTc",
+              additionalResources: [
+                {
+                  title: "Usability Test Templates",
+                  type: "word",
+                  description: "Ready-to-use templates for usability testing",
+                  url: "https://sample-videos.com/doc/Sample-doc-file-100kb.doc"
+                }
+              ]
             }
           ]
         }
       ]
     };
 
-    // Initialize the courses variable by extracting it from platformConfig
-    const courses = platformConfig.courses;
-
-    // Main data store object
-    let dataStore = null;
-
-    // Add variables to track current course and lesson
-    let currentCourseId = "";
-    let currentLessonId = "";
-
-    // Global reference to YouTube player
-    let youtubePlayer = null;
-
-    // Variable to store YouTube progress tracking interval
-    let youtubeProgressInterval = null;
-
-    // Create empty data store structure
-    function createEmptyDataStore() {
-      return {
-        courses: {},
-        lastUpdated: Date.now()
-      };
-    }
-
-    // Save the entire data store
-    function saveDataStore() {
-      if (dataStore) {
-        dataStore.lastUpdated = Date.now();
-        localStorage.setItem('learningData', JSON.stringify(dataStore));
-      }
-    }
-    
-    // ADD MISSING DOCUMENT READY EVENT HANDLER to initialize the platform
-    document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('navTitle').textContent = platformConfig.title;
-      document.getElementById('platformTitle').textContent = platformConfig.pageTitle;
-      document.title = platformConfig.title;
-      
-      // Set up navigation buttons
-      document.getElementById('showAllCoursesBtn').addEventListener('click', showAllCourses);
-      document.getElementById('showMyProgressBtn').addEventListener('click', showMyProgress);
-      
-      // Fix: Initialize setupCourseTreeControls and populateCourseTree
-      setupCourseTreeControls();
-      populateCourseTree();
-      
-      setupSearch(); // Initialize search functionality
-      
-      // IMPORTANT - call renderCourses to display course cards
-      renderCourses();
-      
-      // Add active-nav-item styling
-      document.head.insertAdjacentHTML('beforeend', `
-        <style>
-          .active-nav-item {
-            background-color: #f3f4f6;
-            font-weight: 600;
-            color: #111827 !important;
-          }
-        </style>
-      `);
-
-      // Add this line:
-      setupSidebarToggle();
+    // Initialize the app when the DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+      AppState.init();
     });
-
-    // Ensure renderCourses function is complete
-
-    function renderCourses() {
-      const container = document.getElementById('courses');
-      
-      // Make sure container exists
-      if (!container) {
-        console.error("Courses container not found in the DOM");
-        return;
-      }
-      
-      container.innerHTML = '';
-
-      // Check if courses array exists and has content
-      if (!courses || courses.length === 0) {
-        container.innerHTML = `
-          <div class="col-span-full text-center py-10">
-            <div class="text-gray-400 mb-4"><i class="fas fa-book-open text-5xl"></i></div>
-            <h3 class="text-xl font-semibold text-gray-700 mb-2">No Courses Available</h3>
-            <p class="text-gray-500">There are currently no courses available.</p>
-          </div>
-        `;
-        return;
-      }
-
-      // Use DocumentFragment for better performance
-      const fragment = document.createDocumentFragment();
-
-      courses.forEach(course => {
-        fragment.appendChild(createCourseCard(course));
-      });
-
-      container.appendChild(fragment);
-    }
-
-    // Add these navigation functions
-
-    // Navigation functions
-    function showAllCourses() {
-      document.getElementById('allCoursesPage').classList.remove('hidden');
-      document.getElementById('allCoursesPage').classList.add('block');
-      document.getElementById('myProgressPage').classList.add('hidden');
-      document.getElementById('myProgressPage').classList.remove('block');
-      
-      // Update active navigation item
-      document.getElementById('showAllCoursesBtn').classList.add('active-nav-item');
-      document.getElementById('showMyProgressBtn').classList.remove('active-nav-item');
-    }
-
-    function showMyProgress() {
-      document.getElementById('allCoursesPage').classList.add('hidden');
-      document.getElementById('allCoursesPage').classList.remove('block');
-      document.getElementById('myProgressPage').classList.remove('hidden');
-      document.getElementById('myProgressPage').classList.add('block');
-      
-      // Update active navigation item
-      document.getElementById('showAllCoursesBtn').classList.remove('active-nav-item');
-      document.getElementById('showMyProgressBtn').classList.add('active-nav-item');
-      
-      // Update progress statistics
-      renderProgressPage();
-    }
-
-    // Setup search functionality
-    function setupSearch() {
-      const searchInput = document.getElementById('searchInput');
-      const clearSearch = document.getElementById('clearSearch');
-      
-      if (searchInput && clearSearch) {
-        searchInput.addEventListener('input', function() {
-          const query = this.value.toLowerCase().trim();
-          
-          // Show/hide clear button
-          if (query) {
-            clearSearch.classList.remove('hidden');
-          } else {
-            clearSearch.classList.add('hidden');
-          }
-          
-          // Filter courses
-          performSearch(query);
-        });
-        
-        clearSearch.addEventListener('click', function() {
-          searchInput.value = '';
-          this.classList.add('hidden');
-          performSearch('');
-        });
-      }
-      
-      // Also set up the course tree search
-      const treeSearch = document.getElementById('courseTreeSearch');
-      const clearTreeSearch = document.getElementById('clearTreeSearch');
-      
-      if (treeSearch && clearTreeSearch) {
-        treeSearch.addEventListener('input', function() {
-          const query = this.value.toLowerCase().trim();
-          
-          // Show/hide clear button
-          if (query) {
-            clearTreeSearch.classList.remove('hidden');
-          } else {
-            clearTreeSearch.classList.add('hidden');
-          }
-          
-          // Filter course tree
-          filterCourseTree(query);
-        });
-        
-        clearTreeSearch.addEventListener('click', function() {
-          treeSearch.value = '';
-          this.classList.add('hidden');
-          filterCourseTree('');
-        });
-      }
-    }
-
-    // Function to search and filter courses
-    function performSearch(query) {
-      // Normalize query to lowercase and trim
-      query = query.toLowerCase().trim();
-      
-      // Get all course cards and reset them first
-      const courseCards = document.querySelectorAll('.course-card');
-      
-      // If query is empty, show all courses
-      if (!query) {
-        courseCards.forEach(card => {
-          card.classList.remove('hidden');
-          card.classList.remove('ring-2', 'ring-brand-purple', 'ring-opacity-50');
-          
-          // Reset lesson highlighting
-          const lessonButtons = card.querySelectorAll('button[data-lesson-id]');
-          lessonButtons.forEach(button => {
-            button.classList.remove('ring-2', 'ring-brand-purple', 'ring-opacity-50');
-          });
-        });
-        
-        // Show the original heading
-        document.getElementById('platformTitle').textContent = platformConfig.pageTitle;
-        
-        const subheadingElement = document.querySelector('.flex.items-center.justify-between.flex-wrap p.text-gray-600');
-        if (subheadingElement) {
-          subheadingElement.textContent = "Continue learning where you left off";
-        }
-        return;
-      }
-      
-      // Update the heading to show search results
-      document.getElementById('platformTitle').textContent = `Search results for "${query}"`;
-      
-      const subheadingElement = document.querySelector('.flex.items-center.justify-between.flex-wrap p.text-gray-600');
-      if (subheadingElement) {
-        subheadingElement.textContent = "Courses and lessons matching your search";
-      }
-      
-      // Track matches to update the UI appropriately
-      let matchCount = 0;
-      
-      courseCards.forEach(card => {
-        const courseId = card.dataset.courseId;
-        const course = courses.find(c => c.id === courseId);
-        const courseTitle = card.querySelector('h2').textContent.toLowerCase();
-        const courseDescription = card.querySelector('p.text-gray-700').textContent.toLowerCase();
-        
-        // Check course title and description
-        const titleMatch = courseTitle.includes(query);
-        const descMatch = courseDescription.includes(query);
-        const courseMatches = titleMatch || descMatch;
-        
-        // Get all lesson buttons in this course
-        const lessonButtons = card.querySelectorAll('button[data-lesson-id]');
-        let hasMatchingLesson = false;
-        
-        // Check if any lesson title matches
-        lessonButtons.forEach(button => {
-          const lessonId = button.dataset.lessonId;
-          const lesson = course.lessons.find(l => l.id === lessonId);
-          const lessonTitle = lesson.title.toLowerCase();
-          
-          if (lessonTitle.includes(query)) {
-            // Highlight matching lesson
-            button.classList.add('ring-2', 'ring-brand-purple', 'ring-opacity-50');
-            hasMatchingLesson = true;
-          } else {
-            // Remove highlight if not matching
-            button.classList.remove('ring-2', 'ring-brand-purple', 'ring-opacity-50');
-          }
-        });
-        
-        // Show course if title, description or any lesson matches
-        if (courseMatches || hasMatchingLesson) {
-          card.classList.remove('hidden');
-          matchCount++;
-          
-          if (courseMatches) {
-            card.classList.add('ring-2', 'ring-brand-purple', 'ring-opacity-50');
-          } else {
-            card.classList.remove('ring-2', 'ring-brand-purple', 'ring-opacity-50');
-          }
-        } else {
-          card.classList.add('hidden');
-        }
-      });
-      
-      if (matchCount === 0) {
-        document.getElementById('platformTitle').textContent = "No results found";
-        
-        if (subheadingElement) {
-          subheadingElement.textContent = `No courses or lessons match "${query}"`;
-        }
-      }
-    }
-
-    // Function to filter the course tree
-    function filterCourseTree(query) {
-      // Normalize query to lowercase and trim
-      query = query.toLowerCase().trim();
-      
-      const courseItems = document.querySelectorAll('#courseTreeList > li');
-      let anyMatches = false;
-      
-      courseItems.forEach(courseItem => {
-        const courseId = courseItem.dataset.courseId;
-        const course = courses.find(c => c.id === courseId);
-        
-        // Check course title
-        const courseTitle = courseItem.querySelector('.course-tree-item > div > div > span:nth-child(3)').textContent.toLowerCase();
-        
-        // Get course description from data
-        const courseDescription = course.description.toLowerCase();
-        
-        // Check if course title or description matches
-        const courseMatches = courseTitle.includes(query) || courseDescription.includes(query);
-        
-        // Check lesson titles
-        const lessonItems = courseItem.querySelectorAll('.course-tree-lesson');
-        let lessonMatches = false;
-        
-        lessonItems.forEach(lessonItem => {
-          const lessonId = lessonItem.dataset.lessonId;
-          const lesson = course.lessons.find(l => l.id === lessonId);
-          const lessonText = lessonItem.querySelector('span').textContent.toLowerCase();
-          
-          if (lessonText.includes(query)) {
-            lessonItem.classList.add('bg-gray-100', 'ring-1', 'ring-brand-purple', 'ring-opacity-50');
-            lessonMatches = true;
-          } else {
-            lessonItem.classList.remove('bg-gray-100', 'ring-1', 'ring-brand-purple', 'ring-opacity-50');
-          }
-        });
-        
-        if (courseMatches || lessonMatches || query === '') {
-          courseItem.classList.remove('hidden');
-          anyMatches = true;
-          
-          if (courseMatches) {
-            courseItem.querySelector('.course-tree-item > div').classList.add('bg-gray-100', 'ring-1', 'ring-brand-purple', 'ring-opacity-50');
-          } else {
-            courseItem.querySelector('.course-tree-item > div').classList.remove('bg-gray-100', 'ring-1', 'ring-brand-purple', 'ring-opacity-50');
-          }
-          
-          if (query !== '' && (courseMatches || lessonMatches)) {
-            const toggleIcon = courseItem.querySelector('.course-tree-toggle');
-            const lessonsContainer = courseItem.querySelector('.course-tree-lessons');
-            
-            toggleIcon.classList.add('rotated');
-            lessonsContainer.classList.add('expanded');
-          }
-        } else {
-          courseItem.classList.add('hidden');
-        }
-      });
-      
-      const noResultsEl = document.getElementById('courseTreeNoResults');
-      if (!anyMatches && query !== '') {
-        if (!noResultsEl) {
-          const noResults = document.createElement('div');
-          noResults.id = 'courseTreeNoResults';
-          noResults.className = "text-center py-4 text-sm text-gray-500";
-          noResults.innerHTML = `
-            <i class="fas fa-search text-gray-400 text-xl mb-2"></i>
-            <p>No matches found for "${query}"</p>
-          `;
-          document.getElementById('courseTreeList').appendChild(noResults);
-        } else {
-          noResultsEl.innerHTML = `
-            <i class="fas fa-search text-gray-400 text-xl mb-2"></i>
-            <p>No matches found for "${query}"</p>
-          `;
-          noResultsEl.classList.remove('hidden');
-        }
-      } else if (noResultsEl) {
-        noResultsEl.classList.add('hidden');
-      }
-    }
-
-    // Function to render progress page
-    function renderProgressPage() {
-      let coursesInProgress = 0;
-      let lessonsCompleted = 0;
-      let totalLessons = 0;
-      
-      // Get enrolled courses
-      const enrolledCourseIds = getEnrolledCourseIds();
-      
-      // Reset the progress list
-      const courseProgressList = document.getElementById('courseProgressList');
-      courseProgressList.innerHTML = '';
-      
-      // Check if user has any enrolled courses
-      if (enrolledCourseIds.length === 0) {
-        const noCourseMessage = document.createElement('div');
-        noCourseMessage.className = "bg-white p-8 rounded-lg shadow text-center";
-        noCourseMessage.innerHTML = `
-          <div class="text-gray-400 mb-4"><i class="fas fa-book-reader text-5xl"></i></div>
-          <h3 class="text-xl font-semibold text-gray-700 mb-2">No Enrolled Courses</h3>
-          <p class="text-gray-500 mb-4">You haven't enrolled in any courses yet.</p>
-          <button id="browseCourses" class="bg-brand-purple hover:bg-purple-700 text-white px-6 py-2 rounded-md">
-            Browse Courses
-          </button>
-        `;
-        
-        courseProgressList.appendChild(noCourseMessage);
-        
-        document.getElementById('browseCourses').addEventListener('click', showAllCourses);
-        
-        document.getElementById('coursesInProgressCount').textContent = 0;
-        document.getElementById('lessonsCompletedCount').textContent = 0;
-        document.getElementById('overallProgressPercent').textContent = "0%";
-        
-        return;
-      }
-      
-      // Process enrolled courses
-      courses.forEach(course => {
-        if (!enrolledCourseIds.includes(course.id)) {
-          return;
-        }
-        
-        totalLessons += course.lessons.length;
-        const completedLessonsCount = getCompletedLessons(course).length;
-        lessonsCompleted += completedLessonsCount;
-        
-        const progress = calculateCourseProgress(course);
-        if (progress > 0 && progress < 100) {
-          coursesInProgress++;
-        }
-        
-        // Create course progress card - code for rendering course progress cards...
-        // Implementation details omitted for brevity
-      });
-      
-      // Update stats
-      document.getElementById('coursesInProgressCount').textContent = coursesInProgress;
-      document.getElementById('lessonsCompletedCount').textContent = lessonsCompleted;
-      
-      const overallPercent = totalLessons > 0 ? ((lessonsCompleted / totalLessons) * 100).toFixed(0) : 0;
-      document.getElementById('overallProgressPercent').textContent = `${overallPercent}%`;
-    }
-
-    // Data access helper functions
-    function checkEnrollmentStatus(courseId) {
-      const store = getDataStore();
-      if (!store.courses[courseId]) {
-        return false;
-      }
-      return store.courses[courseId].enrolled === true;
-    }
-
-    function getEnrolledCourseIds() {
-      const store = getDataStore();
-      return Object.keys(store.courses).filter(courseId => store.courses[courseId].enrolled === true);
-    }
-
-    function isLessonCompleted(courseId, lessonId) {
-      const store = getDataStore();
-      if (!store.courses[courseId] || !store.courses[courseId].lessons) {
-        return false;
-      }
-      return store.courses[courseId].lessons[lessonId]?.completed === true;
-    }
-
-    function getStoredProgress(courseId, lessonId) {
-      const store = getDataStore();
-      if (!store.courses[courseId] || !store.courses[courseId].lessons) {
-        return 0;
-      }
-      return store.courses[courseId].lessons[lessonId]?.progress || 0;
-    }
-
-    function storeProgress(courseId, lessonId, ratio) {
-      const store = getDataStore();
-      
-      // Initialize course object if it doesn't exist
-      if (!store.courses[courseId]) {
-        store.courses[courseId] = { lessons: {} };
-      }
-      
-      // Initialize lessons object if it doesn't exist
-      if (!store.courses[courseId].lessons) {
-        store.courses[courseId].lessons = {};
-      }
-      
-      // Initialize lesson object if it doesn't exist
-      if (!store.courses[courseId].lessons[lessonId]) {
-        store.courses[courseId].lessons[lessonId] = {};
-      }
-      
-      // Store progress ratio
-      store.courses[courseId].lessons[lessonId].progress = ratio;
-      
-      // Auto-complete if 100% progress
-      if (ratio >= 1) {
-        store.courses[courseId].lessons[lessonId].completed = true;
-      }
-      
-      // Save data
-      saveDataStore();
-    }
-
-    function markLessonCompleted(courseId, lessonId) {
-      const store = getDataStore();
-      
-      // Initialize course object if it doesn't exist
-      if (!store.courses[courseId]) {
-        store.courses[courseId] = { lessons: {} };
-      }
-      
-      // Initialize lessons object if it doesn't exist
-      if (!store.courses[courseId].lessons) {
-        store.courses[courseId].lessons = {};
-      }
-      
-      // Initialize lesson object if it doesn't exist
-      if (!store.courses[courseId].lessons[lessonId]) {
-        store.courses[courseId].lessons[lessonId] = {};
-      }
-      
-      // Mark as completed
-      store.courses[courseId].lessons[lessonId].completed = true;
-      store.courses[courseId].lessons[lessonId].progress = 1;
-      store.courses[courseId].lessons[lessonId].completedAt = Date.now();
-      
-      // Save data
-      saveDataStore();
-    }
-
-    function getCompletedLessons(course) {
-      const completedLessons = [];
-      const store = getDataStore();
-      
-      if (!store.courses[course.id] || !store.courses[course.id].lessons) {
-        return completedLessons;
-      }
-      
-      course.lessons.forEach(lesson => {
-        if (isLessonCompleted(course.id, lesson.id)) {
-          completedLessons.push(lesson.id);
-        }
-      });
-      
-      return completedLessons;
-    }
-
-    function calculateCourseProgress(course) {
-      const totalLessons = course.lessons.length;
-      if (totalLessons === 0) return 0;
-      
-      const completedCount = getCompletedLessons(course).length;
-      return (completedCount / totalLessons) * 100;
-    }
-
-    function enrollInCourse(courseId) {
-      const store = getDataStore();
-      
-      // Initialize course object if it doesn't exist
-      if (!store.courses[courseId]) {
-        store.courses[courseId] = { lessons: {} };
-      }
-      
-      // Mark as enrolled
-      store.courses[courseId].enrolled = true;
-      store.courses[courseId].enrolledAt = Date.now();
-      
-      // Save data
-      saveDataStore();
-      
-      // Update UI
-      renderCourses();
-      populateCourseTree();
-      
-      // Show message
-      showToast('You have successfully enrolled in the course', 'success');
-    }
-
-    function unenrollFromCourse(courseId) {
-      const store = getDataStore();
-      
-      if (!store.courses[courseId]) {
-        return;
-      }
-      
-      // Ask for confirmation before unenrolling
-      if (confirm("Are you sure you want to unenroll from this course? Your progress will be preserved, but the course will be removed from your active courses.")) {
-        // Mark as not enrolled
-        store.courses[courseId].enrolled = false;
-        
-        // Save data
-        saveDataStore();
-        
-        // Update UI
-        renderCourses();
-        populateCourseTree();
-        
-        // Show message
-        showToast('You have unenrolled from the course', 'info');
-      }
-    }
-
-    // Helper function to show toast notifications
-    function showToast(message, type = 'info') {
-      // Create toast container if it doesn't exist
-      let container = document.getElementById('toastContainer');
-      if (!container) {
-        container = document.createElement('div');
-        container.id = 'toastContainer';
-        container.className = 'fixed bottom-4 right-4 z-50 flex flex-col gap-2';
-        document.body.appendChild(container);
-      }
-      
-      // Create toast
-      const toast = document.createElement('div');
-      
-      // Set appearance based on type
-      let bgColor, textColor, icon;
-      switch (type) {
-        case 'success':
-          bgColor = 'bg-green-500';
-          textColor = 'text-white';
-          icon = '<i class="fas fa-check-circle mr-2"></i>';
-          break;
-        case 'warning':
-          bgColor = 'bg-yellow-500';
-          textColor = 'text-white';
-          icon = '<i class="fas fa-exclamation-triangle mr-2"></i>';
-          break;
-        case 'error':
-          bgColor = 'bg-red-500';
-          textColor = 'text-white';
-          icon = '<i class="fas fa-exclamation-circle mr-2"></i>';
-          break;
-        default:
-          bgColor = 'bg-blue-500';
-          textColor = 'text-white';
-          icon = '<i class="fas fa-info-circle mr-2"></i>';
-      }
-      
-      toast.className = `${bgColor} ${textColor} py-2 px-4 rounded-md shadow-lg flex items-center animate-fade-in max-w-xs`;
-      toast.innerHTML = `${icon}${message}`;
-      container.appendChild(toast);
-      
-      // Remove after 3 seconds
-      setTimeout(() => {
-        toast.classList.add('animate-fade-out');
-        setTimeout(() => {
-          if (container.contains(toast)) {
-            container.removeChild(toast);
-          }
-        }, 300);
-      }, 3000);
-    }
-
-    // Add to your style block
-    document.head.insertAdjacentHTML('beforeend', `
-      <style>
-        .animate-fade-in {
-          animation: fadeIn 0.3s ease-in-out;
-        }
-        .animate-fade-out {
-          animation: fadeOut 0.3s ease-in-out;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes fadeOut {
-          from { opacity: 1; transform: translateY(0); }
-          to { opacity: 0; transform: translateY(10px); }
-        }
-      </style>
-    `);
-
-    // Function to create a course card
-    function createCourseCard(course) {
-      const courseCard = document.createElement('div');
-      courseCard.className = "bg-white rounded-lg shadow-md overflow-hidden flex flex-col course-card border border-gray-200";
-      courseCard.dataset.courseId = course.id;
-
-      const completedLessons = getCompletedLessons(course);
-      const progress = calculateCourseProgress(course);
-      const isInProgress = progress > 0;
-      const isEnrolled = checkEnrollmentStatus(course.id);
-      
-      const img = document.createElement('img');
-      img.src = course.image;
-      img.alt = course.title;
-      img.className = "h-48 w-full object-cover";
-      
-      // Add enrollment badge if enrolled
-      if (isEnrolled) {
-        const enrolledBadge = document.createElement('div');
-        enrolledBadge.className = "absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full";
-        enrolledBadge.innerHTML = '<i class="fas fa-user-check mr-1"></i>Enrolled';
-        
-        // Make img container relative for absolute positioning of badge
-        const imgContainer = document.createElement('div');
-        imgContainer.className = "relative";
-        imgContainer.appendChild(img);
-        imgContainer.appendChild(enrolledBadge);
-        courseCard.appendChild(imgContainer);
-      } else {
-        courseCard.appendChild(img);
-      }
-      
-      const content = document.createElement('div');
-      content.className = "p-5 flex flex-col flex-1 border-t border-gray-100";
-      
-      const title = document.createElement('h2');
-      title.className = "text-xl font-bold mb-2 text-gray-800 leading-tight course-title";
-      title.textContent = course.title;
-      
-      const instructor = document.createElement('p');
-      instructor.className = "text-sm text-gray-600 mb-1";
-      instructor.innerHTML = `<i class="fas fa-user-tie mr-2"></i>${course.instructor}`;
-      
-      const duration = document.createElement('p');
-      duration.className = "text-sm text-gray-600 mb-3";
-      duration.innerHTML = `<i class="fas fa-clock mr-2"></i>${course.duration} total`;
-      
-      const desc = document.createElement('p');
-      desc.className = "text-gray-700 text-sm mb-4 flex-grow course-description";
-      desc.textContent = course.description;
-      
-      // Enroll/Unenroll button
-      const enrollButtonContainer = document.createElement('div');
-      enrollButtonContainer.className = "mb-4";
-      
-      const enrollButton = document.createElement('button');
-      
-      if (isEnrolled) {
-        enrollButton.className = "w-full py-2 px-4 bg-red-50 text-red-600 border border-red-200 rounded hover:bg-red-100 transition-colors";
-        enrollButton.innerHTML = '<i class="fas fa-user-minus mr-2"></i>Unenroll';
-        enrollButton.onclick = () => unenrollFromCourse(course.id);
-      } else {
-        enrollButton.className = "w-full py-2 px-4 bg-brand-purple text-white rounded hover:bg-purple-700 transition-colors";
-        enrollButton.innerHTML = '<i class="fas fa-user-plus mr-2"></i>Enroll in Course';
-        enrollButton.onclick = () => enrollInCourse(course.id);
-      }
-      
-      enrollButtonContainer.appendChild(enrollButton);
-      content.appendChild(title);
-      content.appendChild(instructor);
-      content.appendChild(duration);
-      content.appendChild(desc);
-      content.appendChild(enrollButtonContainer);
-      
-      // Add divider
-      const divider = document.createElement('hr');
-      divider.className = "border-gray-200 mb-4";
-      content.appendChild(divider);
-      
-      // Progress section - only show if enrolled
-      if (isEnrolled) {
-        const progressContainer = document.createElement('div');
-        
-        const progressLabel = document.createElement('div');
-        progressLabel.className = "flex justify-between mb-1";
-        
-        const progressText = document.createElement('span');
-        progressText.className = "text-sm font-medium text-gray-700";
-        progressText.textContent = isInProgress ? "Continue learning" : "Start learning";
-        
-        const progressPercentage = document.createElement('span');
-        progressPercentage.className = "text-sm font-medium text-gray-700";
-        progressPercentage.textContent = `${progress.toFixed(0)}%`;
-        
-        progressLabel.appendChild(progressText);
-        progressLabel.appendChild(progressPercentage);
-        
-        const progressBar = document.createElement('div');
-        progressBar.className = "w-full bg-gray-200 rounded-full h-2.5";
-        
-        const progressFill = document.createElement('div');
-        progressFill.className = `bg-brand-purple h-2.5 rounded-full ${progress > 0 && progress < 100 ? 'progress-bar-animated' : ''}`;
-        progressFill.style.width = `${progress}%`;
-        
-        progressBar.appendChild(progressFill);
-        progressContainer.appendChild(progressLabel);
-        progressContainer.appendChild(progressBar);
-        
-        const stats = document.createElement('p');
-        stats.className = "text-sm text-gray-500 mt-1 mb-4";
-        stats.textContent = `${completedLessons.length} of ${course.lessons.length} lessons completed`;
-        
-        progressContainer.appendChild(stats);
-        content.appendChild(progressContainer);
-      }
-      
-      // Course content section - show for all courses but lessons are disabled for non-enrolled
-      const lessonsContainer = document.createElement('div');
-      lessonsContainer.className = "relative";
-      
-      const lessonsHeader = document.createElement('div');
-      lessonsHeader.className = "flex justify-between items-center mb-3";
-      
-      const lessonsTitle = document.createElement('h3');
-      lessonsTitle.className = "font-semibold text-gray-700";
-      lessonsTitle.textContent = "Course Content";
-      
-      const lessonsCount = document.createElement('span');
-      lessonsCount.className = "text-xs text-gray-500";
-      lessonsCount.textContent = `${course.lessons.length} lessons`;
-      
-      lessonsHeader.appendChild(lessonsTitle);
-      lessonsHeader.appendChild(lessonsCount);
-      lessonsContainer.appendChild(lessonsHeader);
-      
-      const lessonsList = document.createElement('div');
-      lessonsList.className = "space-y-2 pr-1 max-h-48 always-show-scrollbar";
-      
-      // Add lessons to demonstrate scrolling
-      course.lessons.forEach(lesson => {
-        lessonsList.appendChild(createLessonButton(lesson, course.id, isEnrolled));
-      });
-      
-      // For browsers that don't show scrollbars by default
-      if (course.lessons.length < 3) {
-        const spacer = document.createElement('div');
-        spacer.style.height = "4rem";
-        lessonsList.appendChild(spacer);
-      }
-      
-      lessonsContainer.appendChild(lessonsList);
-      content.appendChild(lessonsContainer);
-      
-      // Only add enrollment message overlay for non-enrolled courses
-      if (!isEnrolled) {
-        const enrollOverlay = document.createElement('div');
-        enrollOverlay.className = "mt-2 text-center";
-        enrollOverlay.innerHTML = `
-          <div class="text-xs text-gray-500 py-2 bg-gray-50 border border-gray-100 rounded-md">
-            <i class="fas fa-lock text-gray-400 mr-1"></i>
-            Enroll to access these lessons
-          </div>
-        `;
-        content.appendChild(enrollOverlay);
-      }
-      
-      courseCard.appendChild(content);
-      
-      return courseCard;
-    }
-
-    // Add video player functions if they're missing
-
-    // Video handling functions
-    function openVideo(lesson) {
-      // Find the course this lesson belongs to
-      const course = courses.find(c => c.lessons.some(l => l.id === lesson.id));
-      const courseId = course ? course.id : null;
-      
-      if (!courseId) {
-        console.error("Could not find course for lesson:", lesson);
-        return;
-      }
-      
-      // Check enrollment
-      if (!checkEnrollmentStatus(courseId)) {
-        showToast('Please enroll in this course to view lessons', 'warning');
-        return;
-      }
-      
-      // Set current lesson and course IDs
-      currentLessonId = lesson.id;
-      currentCourseId = courseId;
-      
-      // Set lesson title
-      document.getElementById('lessonTitle').textContent = lesson.title;
-      
-      // Show video modal
-      document.getElementById('videoModal').classList.remove('hidden');
-      
-      // Hide both players initially
-      document.getElementById('lessonVideo').classList.add('hidden');
-      document.getElementById('youtubeContainer').classList.add('hidden');
-      
-      // Get progress data
-      const progress = getStoredProgress(courseId, lesson.id);
-      
-      // Handle YouTube or regular video
-      if (lesson.videoUrl && lesson.videoUrl.includes('youtube.com')) {
-        loadYouTubeVideo(lesson.videoUrl, progress);
-      } else if (lesson.videoUrl) {
-        loadRegularVideo(lesson.videoUrl, progress);
-      }
-      
-      // Update completion button
-      updateCompletionButton(courseId, lesson.id);
-    }
-
-    function loadYouTubeVideo(url, progress) {
-      const youtubeContainer = document.getElementById('youtubeContainer');
-      youtubeContainer.classList.remove('hidden');
-      
-      // Extract YouTube video ID
-      const videoId = getYouTubeVideoId(url);
-      
-      if (!videoId) {
-        console.error("Invalid YouTube URL:", url);
-        return;
-      }
-      
-      // If YouTube API is not loaded yet, wait for it
-      if (typeof YT === 'undefined' || !YT.loaded) {
-        // Add YouTube API script if it doesn't exist
-        if (!document.getElementById('youtube-api')) {
-          const tag = document.createElement('script');
-          tag.id = 'youtube-api';
-          tag.src = 'https://www.youtube.com/iframe_api';
-          const firstScriptTag = document.getElementsByTagName('script')[0];
-          firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-          
-          // Set up callback for when API is ready
-          window.onYouTubeIframeAPIReady = function() {
-            createYouTubePlayer(videoId, progress);
-          };
-        } else {
-          // If script is already there but not loaded yet
-          window.onYouTubeIframeAPIReady = function() {
-            createYouTubePlayer(videoId, progress);
-          };
-        }
-      } else {
-        // YouTube API is already loaded
-        createYouTubePlayer(videoId, progress);
-      }
-    }
-
-    function createYouTubePlayer(videoId, progress) {
-      // If player already exists, destroy it
-      if (youtubePlayer) {
-        youtubePlayer.destroy();
-      }
-      
-      const startTime = progress > 0 ? Math.floor(progress * getYouTubeVideoDuration(videoId)) : 0;
-      
-      youtubePlayer = new YT.Player('youtubePlayer', {
-        videoId: videoId,
-        playerVars: {
-          'autoplay': 1,
-          'start': startTime,
-          'rel': 0,
-          'modestbranding': 1
-        },
-        events: {
-          'onReady': onPlayerReady,
-          'onStateChange': onPlayerStateChange
-        }
-      });
-    }
-
-    function onPlayerReady(event) {
-      // Setup progress tracking interval
-      if (youtubeProgressInterval) {
-        clearInterval(youtubeProgressInterval);
-      }
-      
-      youtubeProgressInterval = setInterval(() => {
-        if (youtubePlayer && youtubePlayer.getCurrentTime) {
-          const currentTime = youtubePlayer.getCurrentTime();
-          const duration = youtubePlayer.getDuration();
-          const progress = currentTime / duration;
-          
-          // Store progress if we have valid values
-          if (!isNaN(progress) && isFinite(progress) && progress > 0) {
-            storeProgress(currentCourseId, currentLessonId, progress);
-            updateCompletionButton(currentCourseId, currentLessonId);
-          }
-        }
-      }, 5000);
-      
-      // Enable restart button after some time has passed
-      setTimeout(() => {
-        document.getElementById('restartButton').classList.remove('opacity-50', 'cursor-not-allowed');
-        document.getElementById('restartButton').disabled = false;
-      }, 10000);
-    }
-
-    function onPlayerStateChange(event) {
-      // If video ended
-      if (event.data === YT.PlayerState.ENDED) {
-        markLessonCompleted(currentCourseId, currentLessonId);
-        updateCompletionButton(currentCourseId, currentLessonId);
-        
-        // Show completion message
-        showToast('Lesson completed!', 'success');
-      }
-    }
-
-    function getYouTubeVideoId(url) {
-      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-      const match = url.match(regExp);
-      return (match && match[2].length === 11) ? match[2] : null;
-    }
-
-    function getYouTubeVideoDuration(videoId) {
-      // This would typically make an API call to YouTube to get the duration
-      // For our demo, we'll use a default duration
-      return 600; // 10 minutes
-    }
-
-    function loadRegularVideo(url, progress) {
-      const videoElement = document.getElementById('lessonVideo');
-      videoElement.classList.remove('hidden');
-      videoElement.src = url;
-      
-      // Set the current time based on stored progress
-      videoElement.addEventListener('loadedmetadata', function() {
-        if (progress > 0) {
-          videoElement.currentTime = progress * videoElement.duration;
-        }
-        videoElement.play();
-        
-        // Enable restart button after some time has passed
-        setTimeout(() => {
-          document.getElementById('restartButton').classList.remove('opacity-50', 'cursor-not-allowed');
-          document.getElementById('restartButton').disabled = false;
-        }, 10000);
-      });
-      
-      // Track progress
-      videoElement.addEventListener('timeupdate', function() {
-        const currentProgress = videoElement.currentTime / videoElement.duration;
-        if (!isNaN(currentProgress) && isFinite(currentProgress)) {
-          // Only update every 5 seconds to avoid excessive writes
-          if (Math.round(videoElement.currentTime) % 5 === 0) {
-            storeProgress(currentCourseId, currentLessonId, currentProgress);
-            updateCompletionButton(currentCourseId, currentLessonId);
-          }
-        }
-      });
-      
-      // Handle video completion
-      videoElement.addEventListener('ended', function() {
-        markLessonCompleted(currentCourseId, currentLessonId);
-        updateCompletionButton(currentCourseId, currentLessonId);
-        showToast('Lesson completed!', 'success');
-      });
-    }
-
-    function updateCompletionButton(courseId, lessonId) {
-      const completed = isLessonCompleted(courseId, lessonId);
-      const progress = getStoredProgress(courseId, lessonId);
-      const completeBtn = document.getElementById('markCompletedButton');
-      
-      if (progress === 1 || completed) {
-        completeBtn.disabled = true;
-        completeBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        completeBtn.classList.remove('hover:bg-purple-700');
-        completeBtn.innerHTML = completed ? 
-          '<i class="fas fa-check-double mr-2"></i>Lesson Completed' : 
-          '<i class="fas fa-check mr-2"></i>Already at 100%';
-      } else {
-        completeBtn.disabled = false;
-        completeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-        completeBtn.classList.add('hover:bg-purple-700');
-        completeBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Mark as Completed';
-      }
-    }
-
-    function closeVideo() {
-      // Clear the progress tracking interval
-      if (youtubeProgressInterval) {
-        clearInterval(youtubeProgressInterval);
-        youtubeProgressInterval = null;
-      }
-      
-      // Stop video playback
-      const videoElement = document.getElementById('lessonVideo');
-      videoElement.pause();
-      videoElement.src = '';
-      
-      // Stop YouTube player if it exists
-      if (youtubePlayer && youtubePlayer.stopVideo) {
-        youtubePlayer.stopVideo();
-      }
-      
-      // Hide the modal
-      document.getElementById('videoModal').classList.add('hidden');
-      
-      // Disable restart button for next video
-      document.getElementById('restartButton').disabled = true;
-      document.getElementById('restartButton').classList.add('opacity-50', 'cursor-not-allowed');
-      
-      // Update UI
-      renderCourses();
-    }
-
-    function restartLesson() {
-      // Handle regular video
-      const videoElement = document.getElementById('lessonVideo');
-      if (!videoElement.classList.contains('hidden')) {
-        videoElement.currentTime = 0;
-        videoElement.play();
-      }
-      
-      // Handle YouTube video
-      if (youtubePlayer && youtubePlayer.seekTo) {
-        youtubePlayer.seekTo(0);
-        youtubePlayer.playVideo();
-      }
-    }
-
-    function markCompleted() {
-      markLessonCompleted(currentCourseId, currentLessonId);
-      closeVideo();
-      renderCourses();
-    }
-
-    // Add getDataStore function if it's missing
-
-    // Initialize and get the data store
-    function getDataStore() {
-      if (!dataStore) {
-        // Attempt to load from localStorage
-        const storedData = localStorage.getItem('learningData');
-        
-        if (storedData) {
-          try {
-            dataStore = JSON.parse(storedData);
-          } catch (e) {
-            console.error("Error parsing stored data:", e);
-            dataStore = createEmptyDataStore();
-          }
-        } else {
-          // Initialize with empty structure if nothing exists
-          dataStore = createEmptyDataStore();
-        }
-      }
-      return dataStore;
-    }
   </script>
+
+  <footer class="bg-white border-t border-gray-200 mt-12">
+    <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <!-- Logo and description -->
+        <div class="col-span-1 md:col-span-1">
+          <div class="flex items-center">
+            <i class="fas fa-graduation-cap text-brand-purple text-2xl mr-2"></i>
+            <span class="text-xl font-bold text-gray-800">Learning Platform</span>
+          </div>
+          <p class="mt-2 text-sm text-gray-600">
+            Your comprehensive online learning solution designed to help you master new skills at your own pace.
+          </p>
+        </div>
+        
+        <!-- Quick links -->
+        <div>
+          <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Learning</h3>
+          <ul class="space-y-2">
+            <li>
+              <a href="#" class="text-gray-600 hover:text-brand-purple text-sm">Browse Courses</a>
+            </li>
+            <li>
+              <a href="#" class="text-gray-600 hover:text-brand-purple text-sm">Learning Paths</a>
+            </li>
+            <li>
+              <a href="#" class="text-gray-600 hover:text-brand-purple text-sm">Certificates</a>
+            </li>
+            <li>
+              <a href="#" class="text-gray-600 hover:text-brand-purple text-sm">For Teams</a>
+            </li>
+          </ul>
+        </div>
+        
+        <!-- Resources -->
+        <div>
+          <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Resources</h3>
+          <ul class="space-y-2">
+            <li>
+              <a href="#" class="text-gray-600 hover:text-brand-purple text-sm">Help Center</a>
+            </li>
+            <li>
+              <a href="#" class="text-gray-600 hover:text-brand-purple text-sm">Knowledge Base</a>
+            </li>
+            <li>
+              <a href="#" class="text-gray-600 hover:text-brand-purple text-sm">Community Forums</a>
+            </li>
+            <li>
+              <a href="#" class="text-gray-600 hover:text-brand-purple text-sm">Developer API</a>
+            </li>
+          </ul>
+        </div>
+        
+        <!-- Company -->
+        <div>
+          <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Company</h3>
+          <ul class="space-y-2">
+            <li>
+              <a href="#" class="text-gray-600 hover:text-brand-purple text-sm">About Us</a>
+            </li>
+            <li>
+              <a href="#" class="text-gray-600 hover:text-brand-purple text-sm">Careers</a>
+            </li>
+            <li>
+              <a href="#" class="text-gray-600 hover:text-brand-purple text-sm">Blog</a>
+            </li>
+            <li>
+              <a href="#" class="text-gray-600 hover:text-brand-purple text-sm">Contact</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+      
+      <!-- Social links and copyright -->
+      <div class="mt-8 pt-6 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center">
+        <div class="flex space-x-4">
+          <a href="#" class="text-gray-400 hover:text-brand-purple">
+            <i class="fab fa-twitter"></i>
+          </a>
+          <a href="#" class="text-gray-400 hover:text-brand-purple">
+            <i class="fab fa-facebook"></i>
+          </a>
+          <a href="#" class="text-gray-400 hover:text-brand-purple">
+            <i class="fab fa-instagram"></i>
+          </a>
+          <a href="#" class="text-gray-400 hover:text-brand-purple">
+            <i class="fab fa-linkedin"></i>
+          </a>
+          <a href="#" class="text-gray-400 hover:text-brand-purple">
+            <i class="fab fa-youtube"></i>
+          </a>
+        </div>
+        <div class="mt-4 sm:mt-0 text-sm text-gray-500">
+          &copy; 2025 Learning Platform. All rights reserved.
+        </div>
+      </div>
+    </div>
+  </footer>
 </body>
 </html>
