@@ -45,3 +45,9 @@ The platform can be easily customized by modifying the `platformConfig` object i
 - Quiz/assessment features
 - Backend integration
 - Course completion certificates
+
+## Building the App
+
+```
+pyinstaller --onefile --add-data "index.html;." --add-data "config.js;." serve.py
+```
