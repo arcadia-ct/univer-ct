@@ -77,6 +77,7 @@
   </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <!-- Your existing styles & Tailwind config here -->
+  <script src="config.js"></script>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans">
   <!-- Top Navigation -->
@@ -187,19 +188,110 @@
         }
       },
       
+      configUrl: 'courses-data.json', // Default relative path
+      
       // State management methods
-      init() {
-        // Load courses from config
-        this.data.courses = platformConfig.courses;
+      async init(configUrl) {
+        // Show loading indicator
+        this.showLoadingIndicator();
         
-        // Load user data from localStorage
-        this.loadUserData();
+        // Allow override of config URL
+        if (configUrl) {
+          this.configUrl = configUrl;
+        }
         
-        // Initialize UI
-        this.render();
+        try {
+          // Load configuration from external JSON file
+          await this.loadConfiguration();
+          
+          // Load user data from localStorage
+          this.loadUserData();
+          
+          // Initialize UI
+          this.render();
+          
+          // Set up event listeners for global components
+          this.setupEventListeners();
+        } catch (error) {
+          console.error("Failed to initialize application:", error);
+          this.showToast('Failed to load course data. Please try again later.', 'error');
+        } finally {
+          // Hide loading indicator
+          this.hideLoadingIndicator();
+        }
+      },
+      
+      async loadConfiguration() {
+        try {
+          const response = await fetch(this.configUrl);
+          
+          if (!response.ok) {
+            throw new Error(`Failed to load configuration from ${this.configUrl}: ${response.status} ${response.statusText}`);
+          }
+          
+          let config;
+          let jsonText = await response.text();
+          
+          // Try to fix common JSON syntax issues
+          if (jsonText.startsWith('//')) {
+            // Remove any comment lines at the beginning
+            jsonText = jsonText.replace(/^\/\/.*$/gm, '').trim();
+          }
+          
+          try {
+            config = JSON.parse(jsonText);
+          } catch (parseError) {
+            console.error("JSON Parse Error:", parseError);
+            console.error("JSON Content (first 500 chars):", jsonText.substring(0, 500));
+            
+            // Last resort: Create a default config
+            console.warn("Using default configuration as fallback");
+            config = {
+              "title": "Learning Platform",
+              "pageTitle": "My Courses",
+              "courses": []
+            };
+          }
+          
+          // Update application with loaded configuration
+          this.platformTitle = config.title || "Learning Platform";
+          this.pageTitle = config.pageTitle || "My Courses";
+          this.data.courses = config.courses || [];
+          
+          console.log(`Configuration loaded from ${this.configUrl}`);
+        } catch (error) {
+          console.error("Error loading configuration:", error);
+          throw error;
+        }
+      },
+      
+      initWithConfig(config) {
+        // Show loading indicator
+        this.showLoadingIndicator();
         
-        // Set up event listeners for global components
-        this.setupEventListeners();
+        try {
+          // Update application with provided configuration
+          this.platformTitle = config.title || "Learning Platform";
+          this.pageTitle = config.pageTitle || "My Courses";
+          this.data.courses = config.courses || [];
+          
+          // Load user data from localStorage
+          this.loadUserData();
+          
+          // Initialize UI
+          this.render();
+          
+          // Set up event listeners for global components
+          this.setupEventListeners();
+          
+          console.log("Configuration loaded from JS object");
+        } catch (error) {
+          console.error("Failed to initialize application:", error);
+          this.showToast('Failed to load course data. Please try again later.', 'error');
+        } finally {
+          // Hide loading indicator
+          this.hideLoadingIndicator();
+        }
       },
       
       loadUserData() {
@@ -260,7 +352,7 @@
               <div class="flex items-center">
                 <span id="brandLogo" class="text-2xl font-bold text-brand-purple">
                   <i class="fas fa-graduation-cap mr-2"></i>
-                  <span id="navTitle">${platformConfig.title}</span>
+                  <span id="navTitle">${this.platformTitle}</span>
                 </span>
               </div>
               
@@ -562,7 +654,437 @@
             mainContent.appendChild(this.renderCoursesPage());
         }
       },
-      
+
+      renderCourseDetailsPage() {
+        const page = document.createElement('div');
+        page.id = 'courseDetailsPage';
+        page.className = 'block';
+        
+        // Find the course by ID
+        const courseId = this.data.currentCourseId;
+        const course = this.data.courses.find(c => c.id === courseId);
+        
+        if (!course) {
+          page.innerHTML = `
+            <div class="text-center py-10">
+              <div class="text-gray-400 mb-4"><i class="fas fa-exclamation-circle text-5xl"></i></div>
+              <h3 class="text-xl font-semibold text-gray-700 mb-2">Course Not Found</h3>
+              <p class="text-gray-500 mb-4">The requested course could not be found.</p>
+              <button id="backToCoursesBtn" class="px-4 py-2 bg-brand-purple text-white rounded hover:bg-purple-700">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Courses
+              </button>
+            </div>
+          `;
+          
+          setTimeout(() => {
+            document.getElementById('backToCoursesBtn').addEventListener('click', () => {
+              this.data.currentView = 'courses';
+              this.render();
+            });
+          }, 0);
+          
+          return page;
+        }
+        
+        // Check enrollment status
+        const isEnrolled = this.checkEnrollmentStatus(courseId);
+        
+        // Find current lesson if one is selected
+        let currentLesson = null;
+        if (this.data.currentLessonId) {
+          currentLesson = course.lessons.find(l => l.id === this.data.currentLessonId);
+        } else if (course.lessons.length > 0) {
+          // Default to first lesson if none selected
+          currentLesson = course.lessons[0];
+          this.data.currentLessonId = currentLesson.id;
+        }
+        
+        // Calculate course progress
+        let totalProgress = 0;
+        let completedLessons = 0;
+        
+        course.lessons.forEach(lesson => {
+          const progress = this.getLessonProgress(courseId, lesson.id);
+          totalProgress += progress;
+          if (progress >= 1) completedLessons++;
+        });
+        
+        const averageProgress = course.lessons.length > 0 ? totalProgress / course.lessons.length : 0;
+        const progressPercent = Math.round(averageProgress * 100);
+        
+        // Render course details page
+        page.innerHTML = `
+          <div class="mb-6">
+            <div class="flex items-center mb-4">
+              <button id="backToCoursesBtn" class="text-gray-600 hover:text-gray-900 mr-3">
+                <i class="fas fa-arrow-left"></i>
+              </button>
+              <h1 class="text-2xl font-bold text-gray-900">${course.title}</h1>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+              <div class="flex flex-col md:flex-row gap-6">
+                <!-- Course image and info -->
+                <div class="w-full md:w-1/3">
+                  <img src="${course.image}" alt="${course.title}" class="w-full rounded-lg mb-4">
+                  
+                  <div class="mb-4">
+                    <h3 class="font-semibold text-gray-700 mb-1">Instructor</h3>
+                    <p class="text-gray-600">${course.instructor}</p>
+                  </div>
+                  
+                  <div class="mb-4">
+                    <h3 class="font-semibold text-gray-700 mb-1">Duration</h3>
+                    <p class="text-gray-600">${course.duration}</p>
+                  </div>
+                  
+                  <div class="mb-4">
+                    <h3 class="font-semibold text-gray-700 mb-1">Course Progress</h3>
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-sm text-gray-600">${completedLessons} of ${course.lessons.length} lessons completed</span>
+                    </div>
+                    <div class="progress-bar">
+                      <div class="progress-bar-fill" style="width: ${progressPercent}%"></div>
+                    </div>
+                    <div class="flex justify-end mt-1">
+                      <span class="text-xs text-gray-600">${progressPercent}% complete</span>
+                    </div>
+                  </div>
+                  
+                  <div class="mb-4">
+                    <h3 class="font-semibold text-gray-700 mb-1">Description</h3>
+                    <p class="text-gray-600 text-sm">${course.description}</p>
+                  </div>
+                  
+                  <div>
+                    ${isEnrolled ? 
+                      `<button id="unenrollBtn" class="w-full py-2 px-4 bg-red-50 text-red-600 border border-red-200 rounded hover:bg-red-100 transition-colors">
+                        <i class="fas fa-user-minus mr-2"></i>Unenroll
+                      </button>` : 
+                      `<button id="enrollBtn" class="w-full py-2 px-4 bg-brand-purple text-white rounded hover:bg-purple-700 transition-colors">
+                        <i class="fas fa-user-plus mr-2"></i>Enroll in Course
+                      </button>`
+                    }
+                  </div>
+                </div>
+                
+                <!-- Course content -->
+                <div class="w-full md:w-2/3">
+                  <div class="mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-3">Course Content</h2>
+                    
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                      <div class="flex space-x-1 mb-4">
+                        <button class="lesson-tab-btn active px-3 py-1 text-sm" data-tab="lessons">
+                          <i class="fas fa-list-ul mr-1"></i> Lessons
+                        </button>
+                      </div>
+                      
+                      <div id="lessonsTabContent" class="tab-content active">
+                        <div id="lessonsAccordion" class="space-y-2">
+                          <!-- Rendered by renderLessonsAccordion() -->
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Current lesson content -->
+                  ${currentLesson ? `
+                    <div id="currentLessonContainer" class="bg-white rounded-lg shadow-md p-4 overflow-hidden">
+                      <h3 class="text-lg font-semibold text-gray-800 mb-3">${currentLesson.title}</h3>
+                      
+                      ${currentLesson.contentType === 'video' ? `
+                        <div class="aspect-w-16 aspect-h-9 mb-4">
+                          <div id="videoPlayer" class="bg-black w-full h-[400px] flex items-center justify-center">
+                            <!-- Video player will be loaded here -->
+                            <div class="text-white text-center">
+                              <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white mx-auto mb-4"></div>
+                              <p>Loading video...</p>
+                            </div>
+                          </div>
+                          
+                          <div class="mt-2 flex items-center justify-between">
+                            <div class="flex items-center">
+                              <span class="text-sm text-gray-600 mr-2">Progress:</span>
+                              <div class="progress-bar w-32">
+                                <div id="videoProgressBar" class="progress-bar-fill" style="width: 0%"></div>
+                              </div>
+                            </div>
+                            <span id="videoProgressText" class="text-xs text-gray-600">0%</span>
+                          </div>
+                        </div>
+                      ` : `
+                        <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                          <p class="text-gray-700">
+                            <i class="fas fa-file-alt text-gray-400 mr-2"></i>
+                            Document content will be displayed here.
+                          </p>
+                        </div>
+                      `}
+                      
+                      ${currentLesson.additionalResources && currentLesson.additionalResources.length > 0 ? `
+                        <div class="mt-6">
+                          <h4 class="text-md font-semibold text-gray-700 mb-2">Additional Resources</h4>
+                          <div class="space-y-2">
+                            ${currentLesson.additionalResources.map(resource => `
+                              <a href="${resource.url}" target="_blank" 
+                                class="flex items-center p-2 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors">
+                                <i class="fas ${resource.type === 'pdf' ? 'fa-file-pdf text-red-500' : 
+                                                resource.type === 'doc' ? 'fa-file-word text-blue-500' : 
+                                                'fa-external-link-alt text-gray-500'} mr-2"></i>
+                                <div>
+                                  <div class="font-medium text-sm">${resource.title}</div>
+                                  <div class="text-xs text-gray-500">${resource.description || ''}</div>
+                                </div>
+                              </a>
+                            `).join('')}
+                          </div>
+                        </div>
+                      ` : ''}
+                    </div>
+                  ` : `
+                    <div class="bg-gray-50 rounded-lg p-6 text-center">
+                      <div class="text-gray-400 mb-4"><i class="fas fa-book-open text-5xl"></i></div>
+                      <h3 class="text-xl font-semibold text-gray-700 mb-2">No Lesson Selected</h3>
+                      <p class="text-gray-500">Please select a lesson from the list to view its content.</p>
+                    </div>
+                  `}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // After the page is added to the DOM, initialize components
+        setTimeout(() => {
+          this.renderLessonsAccordion(courseId);
+          this.setupCourseDetailsEventListeners(courseId);
+          
+          // Initialize video player if there's a video lesson
+          if (currentLesson && currentLesson.contentType === 'video') {
+            this.initializeVideoPlayer(courseId, currentLesson);
+          }
+        }, 0);
+        
+        return page;
+      },
+
+      renderLessonsAccordion(courseId) {
+        const accordion = document.getElementById('lessonsAccordion');
+        if (!accordion) return;
+        
+        const course = this.data.courses.find(c => c.id === courseId);
+        if (!course) return;
+        
+        accordion.innerHTML = '';
+        
+        course.lessons.forEach((lesson, index) => {
+          const progress = this.getLessonProgress(courseId, lesson.id);
+          const isCompleted = progress >= 1;
+          const isInProgress = progress > 0 && progress < 1;
+          const isCurrent = lesson.id === this.data.currentLessonId;
+          
+          const lessonItem = document.createElement('div');
+          lessonItem.className = `lesson-item border rounded-lg overflow-hidden ${isCurrent ? 'border-brand-purple' : 'border-gray-200'}`;
+          lessonItem.dataset.lessonId = lesson.id;
+          
+          // Define status icon and colors
+          let statusIcon, statusClass;
+          if (isCompleted) {
+            statusIcon = '<i class="fas fa-check-circle text-green-500"></i>';
+            statusClass = 'text-green-500';
+          } else if (isInProgress) {
+            statusIcon = '<i class="fas fa-spinner text-blue-500"></i>';
+            statusClass = 'text-blue-500';
+          } else {
+            statusIcon = '<i class="far fa-circle text-gray-400"></i>';
+            statusClass = 'text-gray-400';
+          }
+          
+          // Define content type icon
+          const contentIcon = lesson.contentType === 'video' ? 
+            '<i class="fas fa-play-circle text-gray-500 mr-1"></i>' : 
+            '<i class="fas fa-file-alt text-gray-500 mr-1"></i>';
+          
+          lessonItem.innerHTML = `
+            <button class="lesson-header w-full flex items-center justify-between p-4 bg-white hover:bg-gray-50 ${isCurrent ? 'bg-purple-50' : ''}">
+              <div class="flex items-center">
+                <span class="lesson-status mr-3">${statusIcon}</span>
+                <div>
+                  <div class="font-medium text-left">${lesson.title}</div>
+                  <div class="flex items-center text-xs text-gray-500 mt-1">
+                    ${contentIcon}
+                    <span>${lesson.contentType === 'video' ? 'Video' : 'Document'}</span>
+                    ${isInProgress ? `<span class="ml-2 ${statusClass}">(${Math.round(progress * 100)}% complete)</span>` : ''}
+                  </div>
+                </div>
+              </div>
+              <div class="text-right">
+                <span class="text-xs px-2 py-1 rounded-full ${isCurrent ? 'bg-brand-purple text-white' : 'bg-gray-100 text-gray-600'}">
+                  ${isCurrent ? 'Current' : 'View'}
+                </span>
+              </div>
+            </button>
+          `;
+          
+          // Add click handler
+          lessonItem.querySelector('.lesson-header').addEventListener('click', () => {
+            this.data.currentLessonId = lesson.id;
+            this.render();
+          });
+          
+          accordion.appendChild(lessonItem);
+        });
+      },
+
+      setupCourseDetailsEventListeners(courseId) {
+        // Back button
+        const backBtn = document.getElementById('backToCoursesBtn');
+        if (backBtn) {
+          backBtn.addEventListener('click', () => {
+            this.data.currentView = 'courses';
+            this.render();
+          });
+        }
+        
+        // Enroll button
+        const enrollBtn = document.getElementById('enrollBtn');
+        if (enrollBtn) {
+          enrollBtn.addEventListener('click', () => {
+            this.enrollInCourse(courseId);
+          });
+        }
+        
+        // Unenroll button
+        const unenrollBtn = document.getElementById('unenrollBtn');
+        if (unenrollBtn) {
+          unenrollBtn.addEventListener('click', () => {
+            this.unenrollFromCourse(courseId);
+          });
+        }
+        
+        // Tab buttons
+        const tabButtons = document.querySelectorAll('.lesson-tab-btn');
+        tabButtons.forEach(button => {
+          button.addEventListener('click', () => {
+            // Remove active class from all buttons and contents
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => {
+              content.classList.remove('active');
+            });
+            
+            // Add active class to clicked button and corresponding content
+            button.classList.add('active');
+            const tabId = button.dataset.tab;
+            document.getElementById(`${tabId}TabContent`).classList.add('active');
+          });
+        });
+      },
+
+      initializeVideoPlayer(courseId, lesson) {
+        // Implement video player initialization here
+        // This is just a placeholder - you would need to implement proper video playback
+        const videoContainer = document.getElementById('videoPlayer');
+        if (!videoContainer) return;
+        
+        // Simple video player
+        videoContainer.innerHTML = `
+          <video id="lessonVideo" controls class="w-full h-full" preload="auto">
+            <source src="${lesson.videoUrl}" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+        `;
+        
+        const video = document.getElementById('lessonVideo');
+        const progressBar = document.getElementById('videoProgressBar');
+        const progressText = document.getElementById('videoProgressText');
+        
+        // Get current progress from user data
+        const currentProgress = this.getLessonProgress(courseId, lesson.id) || 0;
+        
+        // Set initial progress display
+        const progressPercent = Math.round(currentProgress * 100);
+        progressBar.style.width = `${progressPercent}%`;
+        progressText.textContent = `${progressPercent}%`;
+        
+        // Set video to saved position
+        if (currentProgress > 0 && video) {
+          video.addEventListener('loadedmetadata', () => {
+            const seekTime = video.duration * currentProgress;
+            if (!isNaN(seekTime)) {
+              video.currentTime = seekTime;
+            }
+          });
+        }
+        
+        // Update progress as video plays
+        let progressUpdateInterval;
+        
+        if (video) {
+          video.addEventListener('play', () => {
+            // Update progress every 5 seconds
+            progressUpdateInterval = setInterval(() => {
+              if (video.duration) {
+                const newProgress = video.currentTime / video.duration;
+                
+                // Update UI
+                const newProgressPercent = Math.round(newProgress * 100);
+                progressBar.style.width = `${newProgressPercent}%`;
+                progressText.textContent = `${newProgressPercent}%`;
+                
+                // Save progress
+                this.updateLessonProgress(courseId, lesson.id, newProgress);
+              }
+            }, 5000);
+          });
+          
+          video.addEventListener('pause', () => {
+            clearInterval(progressUpdateInterval);
+            
+            // Save progress on pause
+            if (video.duration) {
+              const newProgress = video.currentTime / video.duration;
+              this.updateLessonProgress(courseId, lesson.id, newProgress);
+            }
+          });
+          
+          video.addEventListener('ended', () => {
+            clearInterval(progressUpdateInterval);
+            
+            // Mark as completed
+            this.updateLessonProgress(courseId, lesson.id, 1);
+            progressBar.style.width = '100%';
+            progressText.textContent = '100%';
+          });
+        }
+      },
+
+      updateLessonProgress(courseId, lessonId, progress) {
+        // Initialize the course data if it doesn't exist
+        if (!this.userData.courses[courseId]) {
+          this.userData.courses[courseId] = { 
+            enrolled: true,
+            lessons: {} 
+          };
+        }
+        
+        // Initialize the lesson data if it doesn't exist
+        if (!this.userData.courses[courseId].lessons) {
+          this.userData.courses[courseId].lessons = {};
+        }
+        
+        // Update the progress
+        if (!this.userData.courses[courseId].lessons[lessonId]) {
+          this.userData.courses[courseId].lessons[lessonId] = {};
+        }
+        
+        this.userData.courses[courseId].lessons[lessonId].progress = progress;
+        this.userData.courses[courseId].lessons[lessonId].lastAccessed = Date.now();
+        
+        // Save the updated user data
+        this.saveUserData();
+      },
+
       renderCoursesPage() {
         const page = document.createElement('div');
         page.id = 'allCoursesPage';
@@ -570,7 +1092,7 @@
         
         page.innerHTML = `
           <div class="mb-8 border-b border-gray-200 pb-4">
-            <h1 id="platformTitle" class="text-3xl font-bold text-gray-900 mb-2">${platformConfig.pageTitle}</h1>
+            <h1 id="platformTitle" class="text-3xl font-bold text-gray-900 mb-2">${this.pageTitle}</h1>
             <div class="flex items-center justify-between flex-wrap gap-4">
               <p class="text-gray-600">Continue learning where you left off</p>
               
@@ -845,722 +1367,6 @@
         }
       },
 
-      renderProgressPage() {
-        const page = document.createElement('div');
-        page.id = 'myProgressPage';
-        page.className = 'block';
-        
-        // Find enrolled courses for summary stats
-        const enrolledCourses = this.data.courses.filter(course => this.checkEnrollmentStatus(course.id));
-        
-        // Calculate overall stats
-        let totalLessons = 0;
-        let completedLessons = 0;
-        let inProgressLessons = 0;
-        
-        enrolledCourses.forEach(course => {
-          course.lessons.forEach(lesson => {
-            totalLessons++;
-            const progress = this.getLessonProgress(course.id, lesson.id);
-            if (progress >= 1) {
-              completedLessons++;
-            } else if (progress > 0) {
-              inProgressLessons++;
-            }
-          });
-        });
-        
-        const overallProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
-        
-        page.innerHTML = `
-          <div class="mb-8 border-b border-gray-200 pb-4">
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">My Progress</h1>
-            <p class="text-gray-600">Track your learning journey</p>
-          </div>
-          
-          ${enrolledCourses.length > 0 ? `
-          <!-- Progress Summary -->
-          <div class="bg-white rounded-lg shadow-md border border-gray-200 mb-8">
-            <div class="p-6">
-              <h2 class="text-xl font-semibold text-gray-800 mb-6">Learning Summary</h2>
-              
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Courses stats -->
-                <div class="flex flex-col items-center justify-center bg-gray-50 rounded-lg p-6">
-                  <div class="text-brand-purple text-4xl font-bold mb-2">${enrolledCourses.length}</div>
-                  <div class="text-gray-700 font-medium">Courses in Progress</div>
-                </div>
-                
-                <!-- Lessons stats -->
-                <div class="flex flex-col items-center justify-center bg-gray-50 rounded-lg p-6">
-                  <div class="flex items-center gap-2 text-4xl font-bold mb-2">
-                    <span class="text-green-500">${completedLessons}</span>
-                    <span class="text-gray-400 text-xl">/</span>
-                    <span class="text-gray-700">${totalLessons}</span>
-                  </div>
-                  <div class="text-gray-700 font-medium">Lessons Completed</div>
-                </div>
-                
-                <!-- Progress chart -->
-                <div class="flex items-center justify-center">
-                  <div class="relative w-32 h-32">
-                    <!-- SVG circle progress -->
-                    <svg class="w-full h-full" viewBox="0 0 100 100">
-                      <!-- Background circle -->
-                      <circle cx="50" cy="50" r="45" fill="none" stroke="#e5e7eb" stroke-width="10" />
-                      
-                      <!-- Progress circle -->
-                      <circle 
-                        cx="50" 
-                        cy="50" 
-                        r="45" 
-                        fill="none" 
-                        stroke="#6a44d9" 
-                        stroke-width="10" 
-                        stroke-linecap="round"
-                        stroke-dasharray="${overallProgress * 2.83}, 283"
-                        transform="rotate(-90 50 50)" 
-                      />
-                    </svg>
-                    <!-- Percentage in middle -->
-                    <div class="absolute inset-0 flex items-center justify-center text-2xl font-bold text-gray-800">
-                      ${overallProgress}%
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Lesson breakdown -->
-              <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-gray-50 rounded-lg p-4">
-                  <div class="flex items-center justify-between mb-2">
-                    <span class="text-sm font-medium text-gray-700">Course Completion</span>
-                  </div>
-                  <div class="progress-bar">
-                    <div class="progress-bar-fill" style="width: ${overallProgress}%"></div>
-                  </div>
-                  <div class="flex justify-between mt-1">
-                    <span class="text-xs text-gray-500">Not started</span>
-                    <span class="text-xs text-gray-500">In progress</span>
-                    <span class="text-xs text-gray-500">Completed</span>
-                  </div>
-                </div>
-                
-                <div>
-                  <div class="flex items-center justify-between mb-2">
-                    <div class="flex items-center">
-                      <span class="w-3 h-3 rounded-full bg-green-500 mr-2"></span>
-                      <span class="text-sm text-gray-600">Completed</span>
-                    </div>
-                    <span class="text-sm font-medium">${completedLessons}</span>
-                  </div>
-                  <div class="flex items-center justify-between mb-2">
-                    <div class="flex items-center">
-                      <span class="w-3 h-3 rounded-full bg-blue-500 mr-2"></span>
-                      <span class="text-sm text-gray-600">In Progress</span>
-                    </div>
-                    <span class="text-sm font-medium">${inProgressLessons}</span>
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center">
-                      <span class="w-3 h-3 rounded-full bg-gray-300 mr-2"></span>
-                      <span class="text-sm text-gray-600">Not Started</span>
-                    </div>
-                    <span class="text-sm font-medium">${totalLessons - completedLessons - inProgressLessons}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          ` : ''}
-          
-          <h2 class="text-xl font-semibold text-gray-800 mb-4 ${enrolledCourses.length > 0 ? '' : 'hidden'}">
-            My Enrolled Courses
-          </h2>
-          
-          <div id="enrolledCourses">
-            <!-- Enrolled courses will be displayed here -->
-          </div>
-        `;
-        
-        setTimeout(() => {
-          this.renderEnrolledCourses();
-        }, 0);
-        
-        return page;
-      },
-
-      renderEnrolledCourses() {
-        const container = document.getElementById('enrolledCourses');
-        if (!container) return;
-        
-        // Find enrolled courses
-        const enrolledCourses = this.data.courses.filter(course => this.checkEnrollmentStatus(course.id));
-        
-        if (enrolledCourses.length === 0) {
-          container.innerHTML = `
-            <div class="text-center py-10 bg-white rounded-lg shadow-sm border border-gray-200">
-              <div class="text-gray-400 mb-4"><i class="fas fa-user-graduate text-5xl"></i></div>
-              <h3 class="text-xl font-semibold text-gray-700 mb-2">No Enrolled Courses</h3>
-              <p class="text-gray-500 mb-4">You haven't enrolled in any courses yet.</p>
-              <button id="browseCoursesBtn" class="px-4 py-2 bg-brand-purple text-white rounded-md hover:bg-purple-700">
-                Browse Courses
-              </button>
-            </div>
-          `;
-          
-          const browseBtn = document.getElementById('browseCoursesBtn');
-          if (browseBtn) {
-            browseBtn.addEventListener('click', () => {
-              this.data.currentView = 'courses';
-              this.render();
-            });
-          }
-          
-          return;
-        }
-        
-        // Create progress cards for each enrolled course
-        const progressGrid = document.createElement('div');
-        progressGrid.className = 'grid grid-cols-1 md:grid-cols-2 gap-8';
-        
-        enrolledCourses.forEach(course => {
-          // Calculate course progress
-          let totalProgress = 0;
-          let completedLessons = 0;
-          
-          course.lessons.forEach(lesson => {
-            const progress = this.getLessonProgress(course.id, lesson.id);
-            totalProgress += progress;
-            if (progress >= 1) completedLessons++;
-          });
-          
-          const averageProgress = course.lessons.length > 0 ? totalProgress / course.lessons.length : 0;
-          const progressPercent = Math.round(averageProgress * 100);
-          
-          // Create progress card
-          const card = document.createElement('div');
-          card.className = 'bg-white rounded-lg shadow-md overflow-hidden border border-gray-200';
-          
-          card.innerHTML = `
-            <div class="p-5">
-              <div class="flex items-center mb-4">
-                <div class="flex-shrink-0 h-12 w-12 bg-brand-purple bg-opacity-10 rounded-full flex items-center justify-center mr-4">
-                  <i class="fas fa-book text-brand-purple text-xl"></i>
-                </div>
-                <div>
-                  <h3 class="text-lg font-bold text-gray-800">${course.title}</h3>
-                  <p class="text-sm text-gray-600">${course.instructor}</p>
-                </div>
-              </div>
-              
-              <div class="mb-4">
-                <div class="flex items-center justify-between mb-1">
-                  <span class="text-sm font-medium text-gray-700">Overall Progress</span>
-                  <span class="text-sm text-gray-600">${completedLessons} of ${course.lessons.length} completed</span>
-                </div>
-                <div class="progress-bar">
-                  <div class="progress-bar-fill" style="width: ${progressPercent}%"></div>
-                </div>
-              </div>
-              
-              <div class="border-t border-gray-100 pt-4">
-                <div class="flex items-center justify-between mb-3">
-                  <h4 class="font-medium text-gray-700">Recent Lessons</h4>
-                  <button class="resume-course-btn text-sm text-brand-purple hover:underline" data-course-id="${course.id}">
-                    Resume Course
-                  </button>
-                </div>
-                
-                <div class="space-y-2 mb-3">
-                  ${course.lessons.slice(0, 3).map(lesson => {
-                    const progress = this.getLessonProgress(course.id, lesson.id);
-                    let statusIcon, statusClass;
-                    
-                    if (progress >= 1) {
-                      statusIcon = '<i class="fas fa-check-circle text-green-500 mr-2"></i>';
-                      statusClass = 'text-green-600';
-                    } else if (progress > 0) {
-                      statusIcon = '<i class="fas fa-spinner text-blue-500 mr-2"></i>';
-                      statusClass = 'text-blue-600';
-                    } else {
-                      statusIcon = '<i class="fas fa-circle text-gray-300 mr-2"></i>';
-                      statusClass = 'text-gray-500';
-                    }
-                    
-                    return `
-                      <button class="lesson-progress-btn flex items-center justify-between w-full text-left p-2 rounded-md hover:bg-gray-50" 
-                              data-course-id="${course.id}" data-lesson-id="${lesson.id}">
-                        <div class="flex items-center">
-                          ${statusIcon}
-                          <span class="text-sm ${progress > 0 ? 'text-gray-800' : 'text-gray-600'}">${lesson.title}</span>
-                        </div>
-                        <span class="text-xs ${statusClass}">
-                          ${progress >= 1 ? 'Completed' : progress > 0 ? `${Math.round(progress * 100)}%` : 'Not started'}
-                        </span>
-                      </button>
-                    `;
-                  }).join('')}
-                </div>
-                
-                <div class="text-center">
-                  <button class="view-all-lessons-btn px-3 py-1 border border-gray-200 rounded text-sm text-gray-600 hover:bg-gray-50"
-                          data-course-id="${course.id}">
-                    View All Lessons
-                  </button>
-                </div>
-              </div>
-            </div>
-          `;
-          
-          // Add click handlers
-          const resumeCourseBtn = card.querySelector('.resume-course-btn');
-          const viewAllBtn = card.querySelector('.view-all-lessons-btn');
-          const lessonBtns = card.querySelectorAll('.lesson-progress-btn');
-          
-          resumeCourseBtn.addEventListener('click', () => {
-            this.data.currentCourseId = course.id;
-            
-            // Find first incomplete lesson
-            const firstIncomplete = course.lessons.find(lesson => 
-              this.getLessonProgress(course.id, lesson.id) < 1
-            );
-            
-            if (firstIncomplete) {
-              this.data.currentLessonId = firstIncomplete.id;
-            } else {
-              // If all complete, go to first lesson
-              this.data.currentLessonId = course.lessons[0]?.id;
-            }
-            
-            this.data.currentView = 'course-details';
-            this.render();
-          });
-          
-          viewAllBtn.addEventListener('click', () => {
-            this.data.currentCourseId = course.id;
-            this.data.currentView = 'course-details';
-            this.render();
-          });
-          
-          lessonBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-              this.data.currentCourseId = btn.dataset.courseId;
-              this.data.currentLessonId = btn.dataset.lessonId;
-              this.data.currentView = 'course-details';
-              this.render();
-            });
-          });
-          
-          progressGrid.appendChild(card);
-        });
-        
-        container.innerHTML = '';
-        container.appendChild(progressGrid);
-      },
-
-      renderCourseDetailsPage() {
-        const page = document.createElement('div');
-        page.id = 'courseDetailPage';
-        page.className = 'block';
-        
-        // Find the current course
-        const course = this.data.courses.find(c => c.id === this.data.currentCourseId);
-        if (!course) {
-          // If course not found, return to courses
-          this.data.currentView = 'courses';
-          return this.renderCoursesPage();
-        }
-        
-        // Find the current lesson if any
-        const lesson = this.data.currentLessonId ? 
-          course.lessons.find(l => l.id === this.data.currentLessonId) : null;
-        
-        // Build the page header
-        page.innerHTML = `
-          <div class="mb-8 border-b border-gray-200 pb-4">
-            <button id="backToCourses" class="flex items-center text-gray-600 mb-4 hover:text-brand-purple">
-              <i class="fas fa-arrow-left mr-2"></i> Back to All Courses
-            </button>
-            
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">${course.title}</h1>
-            
-            <div class="flex flex-wrap items-center gap-3 mb-4">
-              <span class="text-sm text-gray-600">
-                <i class="fas fa-user-tie text-gray-500 mr-1"></i> ${course.instructor}
-              </span>
-              <span class="text-sm text-gray-600">
-                <i class="fas fa-clock text-gray-500 mr-1"></i> ${course.duration}
-              </span>
-              <span class="text-sm text-gray-600">
-                <i class="fas fa-book text-gray-500 mr-1"></i> ${course.lessons.length} lessons
-              </span>
-            </div>
-            
-            <p class="text-gray-700 mb-4">${course.description}</p>
-            
-            <div class="flex items-center">
-              ${this.checkEnrollmentStatus(course.id) ? 
-                `<div class="bg-green-100 text-green-600 px-3 py-1 rounded-full text-sm font-medium flex items-center">
-                  <i class="fas fa-user-check mr-2"></i> Enrolled
-                </div>` : 
-                `<button id="enrollBtn" data-course-id="${course.id}" class="px-4 py-2 bg-brand-purple text-white rounded-md hover:bg-purple-700">
-                  <i class="fas fa-user-plus mr-2"></i> Enroll in Course
-                </button>`
-              }
-            </div>
-          </div>
-          
-          <!-- Content grid -->
-          <div class="grid grid-cols-12 gap-6">
-            <!-- Sidebar -->
-            <div class="col-span-12 md:col-span-4 lg:col-span-3">
-              <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-                <div class="p-4 border-b border-gray-200">
-                  <h2 class="font-semibold text-gray-800">Course Content</h2>
-                </div>
-                
-                <div class="p-2">
-                  <ul class="divide-y divide-gray-100">
-                    ${course.lessons.map((l, index) => `
-                      <li class="py-2">
-                        <button data-lesson-id="${l.id}" class="lesson-select-btn w-full text-left px-2 py-1 rounded ${l.id === this.data.currentLessonId ? 'bg-gray-100 font-medium' : 'hover:bg-gray-50'}">
-                          <div class="flex items-center">
-                            <div class="flex-shrink-0 w-8 text-center">
-                              ${this.isLessonCompleted(course.id, l.id) ? 
-                                '<i class="fas fa-check-circle text-green-500"></i>' : 
-                                `<span class="text-gray-400">${index + 1}</span>`}
-                            </div>
-                            <div class="ml-2 text-sm">
-                              <div class="text-gray-800 truncate">${l.title}</div>
-                              <div class="text-gray-500 text-xs">
-                                ${l.contentType === 'video' ? 
-                                  '<i class="fas fa-play-circle mr-1"></i> Video' : 
-                                  `<i class="fas fa-file-${l.documentType === 'powerpoint' ? 'powerpoint' : 'word'} mr-1"></i> ${l.documentType === 'powerpoint' ? 'PowerPoint' : 'Word Document'}`}
-                              </div>
-                            </div>
-                          </div>
-                        </button>
-                      </li>
-                    `).join('')}
-                  </ul>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Main content -->
-            <div class="col-span-12 md:col-span-8 lg:col-span-9">
-              ${lesson ? this.renderLessonContent(lesson, course.id) : `
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
-                  <div class="text-gray-400 mb-4"><i class="fas fa-book-open text-5xl"></i></div>
-                  <h3 class="text-xl font-semibold text-gray-700 mb-2">Select a Lesson</h3>
-                  <p class="text-gray-500">Choose a lesson from the sidebar to start learning</p>
-                </div>
-              `}
-            </div>
-          </div>
-        `;
-        
-        // Add event listeners after the DOM is created
-        setTimeout(() => {
-          // Back button
-          const backButton = document.getElementById('backToCourses');
-          if (backButton) {
-            backButton.addEventListener('click', () => {
-              this.data.currentView = 'courses';
-              this.render();
-            });
-          }
-          
-          // Enroll button
-          const enrollBtn = document.getElementById('enrollBtn');
-          if (enrollBtn) {
-            enrollBtn.addEventListener('click', () => {
-              this.enrollInCourse(enrollBtn.dataset.courseId);
-            });
-          }
-          
-          // Lesson select buttons
-          const lessonBtns = document.querySelectorAll('.lesson-select-btn');
-          lessonBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-              this.data.currentLessonId = btn.dataset.lessonId;
-              this.render();
-            });
-          });
-        }, 0);
-        
-        return page;
-      },
-
-      renderLessonContent(lesson, courseId) {
-        // Basic placeholder content based on lesson type
-        if (lesson.contentType === 'video') {
-          // Generate a unique ID for this YouTube player
-          const playerId = `youtube-player-${Date.now()}`;
-          
-          // Create the video container
-          const videoContent = `
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              <div class="p-4 border-b border-gray-200">
-                <h2 class="font-semibold text-gray-800">${lesson.title}</h2>
-              </div>
-              
-              <div class="aspect-video bg-black relative">
-                <div id="${playerId}"></div>
-              </div>
-              
-              <div class="p-4">
-                <div class="mb-4">
-                  <div class="flex items-center justify-between mb-1">
-                    <span class="text-sm font-medium text-gray-700">Video Progress</span>
-                    <span id="videoProgressText" class="text-xs text-gray-600">0%</span>
-                  </div>
-                  <div class="progress-bar">
-                    <div id="videoProgressBar" class="progress-bar-fill" style="width: 0%"></div>
-                  </div>
-                </div>
-                
-                <h3 class="text-sm font-medium text-gray-500 mb-3">Additional Resources</h3>
-                <div class="space-y-2">
-                  ${lesson.additionalResources ? lesson.additionalResources.map(res => `
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-                      <div class="flex items-center">
-                        <i class="fas fa-file-${res.type === 'pdf' ? 'pdf text-red-600' : res.type === 'zip' ? 'archive text-purple-600' : 'alt text-gray-600'} mr-2 text-lg"></i>
-                        <div>
-                          <div class="font-medium">${res.title}</div>
-                          <div class="text-sm text-gray-600">${res.description || 'Supporting material'}</div>
-                        </div>
-                      </div>
-                      <a href="${res.url}" target="_blank" class="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded-md">
-                        Download
-                      </a>
-                    </div>
-                  `).join('') : ''}
-                </div>
-              </div>
-            </div>
-          `;
-          
-          // Initialize the player after the DOM is updated
-          setTimeout(() => {
-            // First, load the YouTube API if it's not already loaded
-            if (!window.YT) {
-              const tag = document.createElement('script');
-              tag.src = 'https://www.youtube.com/iframe_api';
-              const firstScriptTag = document.getElementsByTagName('script')[0];
-              firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-              
-              window.onYouTubeIframeAPIReady = () => {
-                this.initializeYoutubePlayer(playerId, lesson, courseId);
-              };
-            } else {
-              this.initializeYoutubePlayer(playerId, lesson, courseId);
-            }
-          }, 0);
-          
-          return videoContent;
-        } else if (lesson.contentType === 'document') {
-          const isSlides = lesson.documentType === 'powerpoint';
-          return `
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              <div class="p-4 border-b border-gray-200">
-                <h2 class="font-semibold text-gray-800">${lesson.title}</h2>
-              </div>
-              
-              <div class="bg-gray-50 border-b border-gray-200 p-4">
-                <div class="flex items-center justify-between mb-4">
-                  <button id="prevBtn" class="px-3 py-1 bg-gray-200 rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
-                    <i class="fas fa-chevron-left"></i>
-                  </button>
-                  <span id="pageCounter" class="text-sm font-medium">
-                    ${isSlides ? `Slide 1 of ${lesson.totalSlides || 1}` : `Page 1 of ${lesson.pageCount || 1}`}
-                  </span>
-                  <button id="nextBtn" class="px-3 py-1 bg-gray-200 rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
-                    <i class="fas fa-chevron-right"></i>
-                  </button>
-                </div>
-                
-                <div id="documentFrame" class="w-full min-h-[500px] bg-white rounded border border-gray-200">
-                  <iframe 
-                    src="https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(lesson.documentUrl)}" 
-                    width="100%" 
-                    height="500" 
-                    frameborder="0"
-                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-presentation">
-                  </iframe>
-                </div>
-                
-                <div class="mt-3 flex justify-end">
-                  <a href="https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(lesson.documentUrl)}" 
-                     target="_blank" class="text-sm text-brand-purple hover:underline flex items-center">
-                    <i class="fas fa-external-link-alt mr-1"></i> Open in ${isSlides ? 'PowerPoint' : 'Word'} Online
-                  </a>
-                </div>
-              </div>
-              
-              <div class="p-4">
-                <h3 class="text-sm font-medium text-gray-500 mb-3">Additional Resources</h3>
-                <div class="space-y-2">
-                  ${lesson.additionalResources ? lesson.additionalResources.map(res => `
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-                      <div class="flex items-center">
-                        <i class="fas fa-file-${res.type === 'pdf' ? 'pdf text-red-600' : res.type === 'zip' ? 'archive text-purple-600' : 'alt text-gray-600'} mr-2 text-lg"></i>
-                        <div>
-                          <div class="font-medium">${res.title}</div>
-                          <div class="text-sm text-gray-600">${res.description || 'Supporting material'}</div>
-                        </div>
-                      </div>
-                      <a href="${res.url}" target="_blank" class="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded-md">
-                        Download
-                      </a>
-                    </div>
-                  `).join('') : ''}
-                </div>
-              </div>
-            </div>
-          `;
-        }
-        
-        // Default case - should not reach here
-        return `<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <p>Unknown lesson type: ${lesson.contentType}</p>
-        </div>`;
-      },
-
-      getVideoDuration(videoId) {
-        // We don't actually need to pre-fetch the duration since we can get it from the player
-        // Just use a default start time of 0 if we don't have a progress value
-        return 0; // Default duration until we get the actual one from the player
-      },
-
-      initializeYoutubePlayer(playerId, lesson, courseId) {
-        const videoId = this.getYouTubeVideoId(lesson.videoUrl);
-        if (!videoId) return;
-        
-        // Get current progress from user data (if any)
-        const currentProgress = this.getLessonProgress(courseId, lesson.id) || 0;
-        
-        const player = new YT.Player(playerId, {
-          videoId: videoId,
-          playerVars: {
-            autoplay: 0,
-            rel: 0,
-            modestbranding: 1
-          },
-          events: {
-            onReady: (event) => {
-              // Store video duration when available
-              const duration = event.target.getDuration();
-              
-              // If there's saved progress, seek to the right position once player is ready
-              if (currentProgress > 0) {
-                // Calculate time position based on percentage
-                const seekToTime = Math.floor(currentProgress * duration);
-                event.target.seekTo(seekToTime, true);
-              }
-              
-              // Update progress UI with existing progress
-              const progressBar = document.getElementById('videoProgressBar');
-              const progressText = document.getElementById('videoProgressText');
-              
-              if (progressBar && progressText) {
-                const progressPercent = Math.round(currentProgress * 100);
-                progressBar.style.width = `${progressPercent}%`;
-                progressText.textContent = `${progressPercent}%`;
-              }
-            },
-            onStateChange: (event) => {
-              // When video is playing, track progress
-              if (event.data === YT.PlayerState.PLAYING) {
-                // Update progress every 5 seconds
-                this.videoProgressInterval = setInterval(() => {
-                  const player = event.target;
-                  const currentTime = player.getCurrentTime();
-                  const duration = player.getDuration();
-                  
-                  if (duration > 0) {
-                    // Calculate progress as a value between 0 and 1
-                    const progress = Math.min(currentTime / duration, 1);
-                    
-                    // Update the progress bar
-                    const progressBar = document.getElementById('videoProgressBar');
-                    const progressText = document.getElementById('videoProgressText');
-                    
-                    if (progressBar && progressText) {
-                      const progressPercent = Math.round(progress * 100);
-                      progressBar.style.width = `${progressPercent}%`;
-                      progressText.textContent = `${progressPercent}%`;
-                    }
-                    
-                    // Save progress to user data
-                    this.updateLessonProgress(courseId, lesson.id, progress);
-                  }
-                }, 5000); // Update every 5 seconds
-              } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
-                // Clear the interval when video is paused or ended
-                clearInterval(this.videoProgressInterval);
-                
-                // If video ended, mark as completed
-                if (event.data === YT.PlayerState.ENDED) {
-                  this.updateLessonProgress(courseId, lesson.id, 1);
-                  
-                  const progressBar = document.getElementById('videoProgressBar');
-                  const progressText = document.getElementById('videoProgressText');
-                  
-                  if (progressBar && progressText) {
-                    progressBar.style.width = '100%';
-                    progressText.textContent = '100%';
-                  }
-                }
-              }
-            }
-          }
-        });
-        
-        return player;
-      },
-
-      updateLessonProgress(courseId, lessonId, progress) {
-        // Make sure course and lesson data structures exist
-        if (!this.userData.courses[courseId]) {
-          this.userData.courses[courseId] = { lessons: {} };
-        }
-        
-        if (!this.userData.courses[courseId].lessons) {
-          this.userData.courses[courseId].lessons = {};
-        }
-        
-        if (!this.userData.courses[courseId].lessons[lessonId]) {
-          this.userData.courses[courseId].lessons[lessonId] = {};
-        }
-        
-        // Only update if the new progress is greater
-        const currentProgress = this.userData.courses[courseId].lessons[lessonId].progress || 0;
-        if (progress > currentProgress) {
-          this.userData.courses[courseId].lessons[lessonId].progress = progress;
-          this.userData.courses[courseId].lessons[lessonId].lastAccessed = Date.now();
-          
-          // Save to localStorage
-          this.saveUserData();
-          
-          // If progress is 100%, show a toast notification
-          if (progress >= 1 && currentProgress < 1) {
-            this.showToast('Lesson completed!', 'success');
-          }
-        }
-      },
-
-      getYouTubeVideoId(url) {
-        if (!url) return null;
-        
-        // Handle different YouTube URL formats
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-        const match = url.match(regExp);
-        
-        return (match && match[2].length === 11) ? match[2] : null;
-      },
-
       // More component methods...
       
       // Utility methods
@@ -1730,272 +1536,33 @@
             toast.remove();
           }, 300);
         }, 5000);
-      }
-    };
+      },
 
-    // Platform configuration with course data
-    const platformConfig = {
-      title: "Learning Platform",
-      pageTitle: "My Courses",
-      courses: [
-        {
-          id: "course-1",
-          title: "Python Basics",
-          description: "Learn the fundamentals of Python programming with hands-on projects and exercises.",
-          image: "https://images.unsplash.com/photo-1649180556628-9ba704115795?q=80&w=3262&auto=format&fit=crop&ixlib=rb-4.0.3",
-          instructor: "Alex Johnson",
-          duration: "8 hours",
-          lessons: [
-            { 
-              id: "lesson-1", 
-              title: "Introduction to Python", 
-              contentType: "video",
-              videoUrl: "https://www.youtube.com/watch?v=K5KVEU3aaeQ",
-              additionalResources: [
-                {
-                  title: "Introduction Slides",
-                  type: "pdf",
-                  description: "Downloadable slides from the lecture",
-                  url: "https://sample-videos.com/pdf/Sample-pdf-5mb.pdf"
-                },
-                {
-                  title: "Python Installation Guide",
-                  type: "word",
-                  description: "Step-by-step installation instructions",
-                  url: "https://sample-videos.com/doc/Sample-doc-file-100kb.doc"
-                }
-              ]
-            },
-            { 
-              id: "lesson-2", 
-              title: "Python Syntax Guide", 
-              contentType: "document",
-              documentType: "powerpoint",
-              documentUrl: "https://sample-videos.com/ppt/Sample-PPT-File-1000kb.ppt", 
-              totalSlides: 17,
-              additionalResources: [
-                {
-                  title: "Code Examples",
-                  type: "zip",
-                  description: "Download code examples from the presentation",
-                  url: "https://sample-videos.com/zip/Sample-zip-file-100kb.zip"
-                }
-              ]
-            },
-            { 
-              id: "lesson-3", 
-              title: "Control Flow and Loops", 
-              contentType: "video",
-              videoUrl: "https://www.youtube.com/watch?v=6iF8Xb7Z3wQ",
-              additionalResources: [
-                {
-                  title: "Practice Exercises",
-                  type: "pdf",
-                  description: "Exercises to practice control flow concepts",
-                  url: "https://sample-videos.com/pdf/Sample-pdf-5mb.pdf"
-                }
-              ]
-            },
-            { 
-              id: "lesson-4", 
-              title: "Functions and Modules", 
-              contentType: "video",
-              videoUrl: "https://www.youtube.com/watch?v=6iF8Xb7Z3wQ",
-              additionalResources: [
-                {
-                  title: "Function Reference",
-                  type: "pdf",
-                  description: "Quick reference for Python functions",
-                  url: "https://sample-videos.com/pdf/Sample-pdf-5mb.pdf"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          id: "course-2",
-          title: "JavaScript Essentials",
-          description: "Master the basics of JavaScript including DOM manipulation, events, and modern ES6+ features.",
-          image: "https://images.unsplash.com/photo-1579468118864-1b9ea3c0db4a?q=80&w=3270&auto=format&fit=crop&ixlib=rb-4.0.3",
-          instructor: "Maria Garcia",
-          duration: "6.5 hours",
-          lessons: [
-            { 
-              id: "lesson-5", 
-              title: "JavaScript Fundamentals", 
-              contentType: "video",
-              videoUrl: "https://www.youtube.com/watch?v=PkZNo7MFNFg",
-              additionalResources: [
-                {
-                  title: "JavaScript Cheatsheet",
-                  type: "pdf",
-                  description: "Quick reference for JavaScript syntax",
-                  url: "https://sample-videos.com/pdf/Sample-pdf-5mb.pdf"
-                }
-              ]
-            },
-            { 
-              id: "lesson-6", 
-              title: "Working with the DOM", 
-              contentType: "document",
-              documentType: "word",
-              documentUrl: "https://sample-videos.com/doc/Sample-doc-file-200kb.doc",
-              pageCount: 31,
-              additionalResources: [
-                {
-                  title: "DOM Manipulation Examples",
-                  type: "zip",
-                  description: "Sample code for DOM manipulation",
-                  url: "https://sample-videos.com/zip/Sample-zip-file-100kb.zip"
-                }
-              ]
-            },
-            { 
-              id: "lesson-7", 
-              title: "Event Handling", 
-              contentType: "video",
-              videoUrl: "https://www.youtube.com/watch?v=XF1_MlZ5l6M",
-              additionalResources: [
-                {
-                  title: "Event Reference",
-                  type: "pdf",
-                  description: "Complete guide to JavaScript events",
-                  url: "https://sample-videos.com/pdf/Sample-pdf-5mb.pdf"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          id: "course-3",
-          title: "React for Beginners",
-          description: "Learn the fundamentals of React including components, state management, and hooks.",
-          image: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=3270&auto=format&fit=crop&ixlib=rb-4.0.3",
-          instructor: "David Chen",
-          duration: "10 hours",
-          lessons: [
-            { 
-              id: "lesson-8", 
-              title: "Introduction to React", 
-              contentType: "video",
-              videoUrl: "https://www.youtube.com/watch?v=Ke90Tje7VS0",
-              additionalResources: [
-                {
-                  title: "React Setup Guide",
-                  type: "pdf",
-                  description: "How to set up your React development environment",
-                  url: "https://sample-videos.com/pdf/Sample-pdf-5mb.pdf"
-                }
-              ]
-            },
-            { 
-              id: "lesson-9", 
-              title: "Components and Props", 
-              contentType: "document",
-              documentType: "powerpoint",
-              documentUrl: "https://sample-videos.com/ppt/Sample-PPT-File-1000kb.ppt", 
-              totalSlides: 24,
-              additionalResources: [
-                {
-                  title: "Component Examples",
-                  type: "zip",
-                  description: "Example React components",
-                  url: "https://sample-videos.com/zip/Sample-zip-file-100kb.zip"
-                }
-              ]
-            },
-            { 
-              id: "lesson-10", 
-              title: "State and Lifecycle", 
-              contentType: "video",
-              videoUrl: "https://www.youtube.com/watch?v=4ZAEBxGipoA",
-              additionalResources: [
-                {
-                  title: "State Management Patterns",
-                  type: "pdf",
-                  description: "Best practices for state management in React",
-                  url: "https://sample-videos.com/pdf/Sample-pdf-5mb.pdf"
-                }
-              ]
-            },
-            { 
-              id: "lesson-11", 
-              title: "Hooks in React", 
-              contentType: "document",
-              documentType: "word",
-              documentUrl: "https://sample-videos.com/doc/Sample-doc-file-5mb.doc",
-              pageCount: 42,
-              additionalResources: [
-                {
-                  title: "Hooks Reference",
-                  type: "pdf",
-                  description: "Complete guide to React Hooks",
-                  url: "https://sample-videos.com/pdf/Sample-pdf-5mb.pdf"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          id: "course-4",
-          title: "UI/UX Design Principles",
-          description: "Learn the fundamentals of creating user-friendly interfaces and experiences.",
-          image: "https://images.unsplash.com/photo-1565106430482-8f6e74349ca1?q=80&w=3270&auto=format&fit=crop&ixlib=rb-4.0.3",
-          instructor: "Sarah Miller",
-          duration: "7 hours",
-          lessons: [
-            { 
-              id: "lesson-12", 
-              title: "Introduction to UI/UX", 
-              contentType: "video",
-              videoUrl: "https://www.youtube.com/watch?v=jx5jmI0UlXU",
-              additionalResources: [
-                {
-                  title: "UI/UX Terminology",
-                  type: "pdf",
-                  description: "Glossary of common UI/UX terms",
-                  url: "https://sample-videos.com/pdf/Sample-pdf-5mb.pdf"
-                }
-              ]
-            },
-            { 
-              id: "lesson-13", 
-              title: "Color Theory for Digital Design", 
-              contentType: "document",
-              documentType: "powerpoint",
-              documentUrl: "https://sample-videos.com/ppt/Sample-PPT-File-1000kb.ppt", 
-              totalSlides: 35,
-              additionalResources: [
-                {
-                  title: "Color Palette Examples",
-                  type: "zip",
-                  description: "Sample color palettes for various applications",
-                  url: "https://sample-videos.com/zip/Sample-zip-file-100kb.zip"
-                }
-              ]
-            },
-            { 
-              id: "lesson-14", 
-              title: "Usability Testing Methods", 
-              contentType: "video",
-              videoUrl: "https://www.youtube.com/watch?v=O94kYyzqvTc",
-              additionalResources: [
-                {
-                  title: "Usability Test Templates",
-                  type: "word",
-                  description: "Ready-to-use templates for usability testing",
-                  url: "https://sample-videos.com/doc/Sample-doc-file-100kb.doc"
-                }
-              ]
-            }
-          ]
+      showLoadingIndicator() {
+        const loadingOverlay = document.createElement('div');
+        loadingOverlay.id = 'loadingOverlay';
+        loadingOverlay.className = 'fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50';
+        loadingOverlay.innerHTML = `
+          <div class="bg-white p-6 rounded-lg shadow-lg text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-purple mx-auto mb-4"></div>
+            <p class="text-gray-700">Loading course data...</p>
+          </div>
+        `;
+        document.body.appendChild(loadingOverlay);
+      },
+
+      hideLoadingIndicator() {
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        if (loadingOverlay) {
+          loadingOverlay.remove();
         }
-      ]
+      }
     };
 
     // Initialize the app when the DOM is loaded
     document.addEventListener('DOMContentLoaded', function() {
-      AppState.init();
+      // Instead of loading from a JSON file, use the JS object directly
+      AppState.initWithConfig(courseConfig);
     });
   </script>
 
