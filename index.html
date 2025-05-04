@@ -207,11 +207,21 @@
           // Load user data from localStorage
           this.loadUserData();
           
+          // IMPORTANT: Parse URL first to set current view based on the URL
+          this.parseURL();
+          
           // Initialize UI
           this.render();
           
           // Set up event listeners for global components
           this.setupEventListeners();
+          
+          // Set up window popstate event for back/forward navigation
+          window.addEventListener('popstate', (e) => {
+            this.parseURL();
+            this.render();
+          });
+          
         } catch (error) {
           console.error("Failed to initialize application:", error);
           this.showToast('Failed to load course data. Please try again later.', 'error');
@@ -278,11 +288,20 @@
           // Load user data from localStorage
           this.loadUserData();
           
+          // IMPORTANT: Parse the URL before rendering
+          this.parseURL();
+          
           // Initialize UI
           this.render();
           
           // Set up event listeners for global components
           this.setupEventListeners();
+          
+          // IMPORTANT: Set up window popstate event for back/forward navigation
+          window.addEventListener('popstate', (e) => {
+            this.parseURL();
+            this.render();
+          });
           
           console.log("Configuration loaded from JS object");
         } catch (error) {
@@ -324,6 +343,7 @@
         this.renderNavigation();
         this.renderSidebar();
         this.renderMainContent();
+        this.updatePageTitle();
       },
       
       setupEventListeners() {
@@ -335,9 +355,11 @@
         // Example of event delegation
         if (event.target.closest('#showAllCoursesBtn')) {
           this.data.currentView = 'courses';
+          this.updateURLWithoutRefresh('#courses');
           this.render();
         } else if (event.target.closest('#showMyProgressBtn')) {
           this.data.currentView = 'progress';
+          this.updateURLWithoutRefresh('#progress');
           this.render();
         }
         // Add more global click handlers...
@@ -541,6 +563,7 @@
               this.data.currentCourseId = course.id;
               this.data.currentLessonId = lesson.id;
               this.data.currentView = 'course-details';
+              this.updateURLWithoutRefresh(`#course/${course.id}/${lesson.id}`);
               this.render();
             });
             
@@ -655,6 +678,264 @@
         }
       },
 
+      generateSlug(text) {
+        return text.toString().toLowerCase()
+          .replace(/\s+/g, '-')           // Replace spaces with -
+          .replace(/[^\w\-]+/g, '')       // Remove all non-word chars
+          .replace(/\-\-+/g, '-')         // Replace multiple - with single -
+          .replace(/^-+/, '')             // Trim - from start of text
+          .replace(/-+$/, '');            // Trim - from end of text
+      },
+
+      updateURLWithoutRefresh(path) {
+        if (history.pushState) {
+          const baseUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+          const newUrl = baseUrl + path;
+          history.pushState({path: path}, '', newUrl);
+        }
+      },
+
+      parseURL() {
+        // Get the URL hash (everything after the # symbol)
+        const hash = window.location.hash.substring(1);
+        
+        if (!hash) {
+          // Default view if no hash
+          this.data.currentView = 'courses';
+          this.data.currentCourseId = null;
+          this.data.currentLessonId = null;
+          return;
+        }
+        
+        // Split the hash by /
+        const parts = hash.split('/');
+        
+        // Parse the view type
+        if (parts[0] === 'courses') {
+          this.data.currentView = 'courses';
+          this.data.currentCourseId = null;
+          this.data.currentLessonId = null;
+        } else if (parts[0] === 'progress') {
+          this.data.currentView = 'progress';
+          this.data.currentCourseId = null;
+          this.data.currentLessonId = null;
+        } else if (parts[0] === 'course') {
+          this.data.currentView = 'course-details';
+          this.data.currentCourseId = parts[1] || null;
+          this.data.currentLessonId = parts[2] || null;
+          
+          // If a course ID is provided but no lesson ID, find the first lesson
+          if (this.data.currentCourseId && !this.data.currentLessonId) {
+            const course = this.data.courses.find(c => c.id === this.data.currentCourseId);
+            if (course && course.lessons && course.lessons.length > 0) {
+              this.data.currentLessonId = course.lessons[0].id;
+            }
+          }
+        }
+        
+        console.log("URL parsed:", {
+          view: this.data.currentView,
+          courseId: this.data.currentCourseId,
+          lessonId: this.data.currentLessonId
+        });
+      },
+
+      updatePageTitle() {
+        let title = this.platformTitle || "Learning Platform";
+        
+        if (this.data.currentView === 'courses') {
+          title = `${this.pageTitle || "My Courses"} | ${this.platformTitle}`;
+        } else if (this.data.currentView === 'progress') {
+          title = `My Progress | ${this.platformTitle}`;
+        } else if (this.data.currentView === 'course-details' && this.data.currentCourseId) {
+          const course = this.data.courses.find(c => c.id === this.data.currentCourseId);
+          if (course) {
+            if (this.data.currentLessonId) {
+              const lesson = course.lessons.find(l => l.id === this.data.currentLessonId);
+              if (lesson) {
+                title = `${lesson.title} - ${course.title} | ${this.platformTitle}`;
+              } else {
+                title = `${course.title} | ${this.platformTitle}`;
+              }
+            } else {
+              title = `${course.title} | ${this.platformTitle}`;
+            }
+          }
+        }
+        
+        document.title = title;
+      },
+
+      renderProgressPage() {
+        const page = document.createElement('div');
+        page.id = 'progressPage';
+        page.className = 'block';
+        
+        // Check if user has any enrolled courses
+        const enrolledCourses = this.data.courses.filter(course => this.checkEnrollmentStatus(course.id));
+        
+        if (enrolledCourses.length === 0) {
+          // No enrolled courses
+          page.innerHTML = `
+            <div class="mb-8 border-b border-gray-200 pb-4">
+              <h1 class="text-3xl font-bold text-gray-900 mb-2">My Progress</h1>
+            </div>
+            
+            <div class="text-center py-10">
+              <div class="text-gray-400 mb-4"><i class="fas fa-chart-bar text-5xl"></i></div>
+              <h3 class="text-xl font-semibold text-gray-700 mb-2">No Enrolled Courses</h3>
+              <p class="text-gray-500 mb-4">Enroll in courses to track your learning progress.</p>
+              <button id="browseCoursesBtn" class="px-4 py-2 bg-brand-purple text-white rounded hover:bg-purple-700">
+                Browse Courses
+              </button>
+            </div>
+          `;
+          
+          // Add click handler for the browse courses button
+          setTimeout(() => {
+            document.getElementById('browseCoursesBtn')?.addEventListener('click', () => {
+              this.data.currentView = 'courses';
+              this.updateURLWithoutRefresh('#courses');
+              this.render();
+            });
+          }, 0);
+          
+          return page;
+        }
+        
+        // User has enrolled courses - show progress overview
+        let overallProgress = 0;
+        let totalLessons = 0;
+        let completedLessons = 0;
+        
+        // Calculate overall statistics
+        enrolledCourses.forEach(course => {
+          course.lessons.forEach(lesson => {
+            totalLessons++;
+            const progress = this.getLessonProgress(course.id, lesson.id);
+            if (progress >= 1) {
+              completedLessons++;
+            }
+          });
+        });
+        
+        overallProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+        
+        // Render the progress dashboard
+        page.innerHTML = `
+          <div class="mb-8 border-b border-gray-200 pb-4">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">My Progress</h1>
+            <p class="text-gray-600">Track your learning journey</p>
+          </div>
+          
+          <div class="mb-8">
+            <div class="bg-white rounded-lg shadow p-6">
+              <h2 class="text-xl font-semibold text-gray-800 mb-4">Overall Progress</h2>
+              
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-gray-50 p-4 rounded-lg">
+                  <div class="text-3xl font-bold text-brand-purple mb-1">${enrolledCourses.length}</div>
+                  <div class="text-sm text-gray-600">Enrolled Courses</div>
+                </div>
+                
+                <div class="bg-gray-50 p-4 rounded-lg">
+                  <div class="text-3xl font-bold text-brand-purple mb-1">${completedLessons}/${totalLessons}</div>
+                  <div class="text-sm text-gray-600">Lessons Completed</div>
+                </div>
+                
+                <div class="bg-gray-50 p-4 rounded-lg">
+                  <div class="text-3xl font-bold text-brand-purple mb-1">${overallProgress}%</div>
+                  <div class="text-sm text-gray-600">Overall Completion</div>
+                </div>
+              </div>
+              
+              <div class="mb-2 flex justify-between text-sm">
+                <span class="text-gray-600">Total Progress</span>
+                <span class="font-medium">${overallProgress}%</span>
+              </div>
+              
+              <div class="progress-bar h-2">
+                <div class="progress-bar-fill" style="width: ${overallProgress}%"></div>
+              </div>
+            </div>
+          </div>
+          
+          <div>
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Course Progress</h2>
+            
+            <div class="space-y-4" id="courseProgressList">
+              <!-- Individual course progress will be rendered here -->
+            </div>
+          </div>
+        `;
+        
+        // After the page is added to the DOM, render course progress items
+        setTimeout(() => {
+          this.renderCourseProgressItems(enrolledCourses);
+        }, 0);
+        
+        return page;
+      },
+
+      renderCourseProgressItems(enrolledCourses) {
+        const container = document.getElementById('courseProgressList');
+        if (!container) return;
+        
+        enrolledCourses.forEach(course => {
+          // Calculate course progress
+          let totalLessons = course.lessons.length;
+          let completedLessons = 0;
+          let inProgressLessons = 0;
+          
+          course.lessons.forEach(lesson => {
+            const progress = this.getLessonProgress(course.id, lesson.id);
+            if (progress >= 1) {
+              completedLessons++;
+            } else if (progress > 0) {
+              inProgressLessons++;
+            }
+          });
+          
+          const progressPercent = Math.round((completedLessons / totalLessons) * 100) || 0;
+          
+          // Create course progress item
+          const courseItem = document.createElement('div');
+          courseItem.className = 'bg-white rounded-lg shadow overflow-hidden';
+          courseItem.innerHTML = `
+            <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between">
+              <div class="mb-3 sm:mb-0">
+                <h3 class="font-semibold text-gray-800">${course.title}</h3>
+                <p class="text-sm text-gray-600">${completedLessons} of ${totalLessons} lessons completed</p>
+              </div>
+              
+              <div class="flex space-x-3 items-center">
+                <div class="text-right">
+                  <span class="font-medium text-lg">${progressPercent}%</span>
+                </div>
+                
+                <button class="viewCourseBtn px-3 py-1 bg-brand-purple text-white rounded hover:bg-purple-700 text-sm" data-course-id="${course.id}">
+                  View Course
+                </button>
+              </div>
+            </div>
+            
+            <div class="progress-bar h-1">
+              <div class="progress-bar-fill" style="width: ${progressPercent}%"></div>
+            </div>
+          `;
+          
+          // Add click handler for view course button
+          courseItem.querySelector('.viewCourseBtn').addEventListener('click', () => {
+            this.data.currentCourseId = course.id;
+            this.data.currentView = 'course-details';
+            this.updateURLWithoutRefresh(`#course/${course.id}`);
+            this.render();
+          });
+          
+          container.appendChild(courseItem);
+        });
+      },
+
       renderCourseDetailsPage() {
         const page = document.createElement('div');
         page.id = 'courseDetailsPage';
@@ -679,6 +960,7 @@
           setTimeout(() => {
             document.getElementById('backToCoursesBtn').addEventListener('click', () => {
               this.data.currentView = 'courses';
+              this.updateURLWithoutRefresh('#courses');
               this.render();
             });
           }, 0);
@@ -930,6 +1212,7 @@
           // Add click handler
           lessonItem.querySelector('.lesson-header').addEventListener('click', () => {
             this.data.currentLessonId = lesson.id;
+            this.updateURLWithoutRefresh(`#course/${courseId}/${lesson.id}`);
             this.render();
           });
           
@@ -943,6 +1226,7 @@
         if (backBtn) {
           backBtn.addEventListener('click', () => {
             this.data.currentView = 'courses';
+            this.updateURLWithoutRefresh('#courses');
             this.render();
           });
         }
@@ -1194,6 +1478,7 @@
           viewCourseBtn.addEventListener('click', () => {
             this.data.currentCourseId = course.id;
             this.data.currentView = 'course-details';
+            this.updateURLWithoutRefresh(`#course/${course.id}`);
             this.render();
           });
           titleContainer.appendChild(viewCourseBtn);
@@ -1341,6 +1626,7 @@
               this.data.currentCourseId = course.id;
               this.data.currentLessonId = lesson.id;
               this.data.currentView = 'course-details';
+              this.updateURLWithoutRefresh(`#course/${course.id}/${lesson.id}`);
               this.render();
             });
           }
