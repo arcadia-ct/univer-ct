@@ -119,11 +119,17 @@
           <p class="course-duration text-sm text-gray-600 mb-3">
             <i class="fas fa-clock mr-2"></i><span></span>
           </p>
-          <p class="course-description text-gray-700 text-sm mb-4 flex-grow"></p>
-          <div class="enroll-button-container mb-4"></div>
-          <hr class="border-gray-200 mb-4">
-          <div class="course-progress-container"></div>
-          <div class="lessons-container"></div>
+          <p class="course-description text-gray-700 text-sm mb-4 flex-grow line-clamp-3" style="min-height: 4.5rem;"></p>
+          
+          <!-- This ensures buttons are always at the bottom -->
+          <div class="mt-auto pt-4">
+            <div class="enroll-button-container mb-4">
+              <!-- Buttons will be added here -->
+            </div>
+            <hr class="border-gray-200 mb-4">
+            <div class="course-progress-container"></div>
+            <div class="lessons-container" style="max-height: 12rem; overflow-y: auto;"></div>
+          </div>
         </div>
       </div>
     </template>
@@ -1455,33 +1461,10 @@
             card.querySelector('.enrolled-badge').classList.remove('hidden');
           }
           
-          // Create title container with View Course button
+          // Set title (without the View Course button)
           const titleEl = card.querySelector('.course-title');
-          const titleText = titleEl.textContent = course.title;
-          
-          // Add title with button container
-          const titleContainer = document.createElement('div');
-          titleContainer.className = 'flex items-center justify-between mb-2';
-          titleEl.replaceWith(titleContainer);
-          
-          // Add title element
-          const newTitleEl = document.createElement('h2');
-          newTitleEl.className = 'course-title text-xl font-bold text-gray-800 leading-tight';
-          newTitleEl.textContent = course.title;
-          titleContainer.appendChild(newTitleEl);
-          
-          // Add View Course button
-          const viewCourseBtn = document.createElement('button');
-          viewCourseBtn.className = 'text-sm px-3 py-1 bg-brand-purple text-white rounded hover:bg-purple-700 ml-2 whitespace-nowrap';
-          viewCourseBtn.innerHTML = '<i class="fas fa-eye mr-1"></i> View Course';
-          viewCourseBtn.dataset.courseId = course.id;
-          viewCourseBtn.addEventListener('click', () => {
-            this.data.currentCourseId = course.id;
-            this.data.currentView = 'course-details';
-            this.updateURLWithoutRefresh(`#course/${course.id}`);
-            this.render();
-          });
-          titleContainer.appendChild(viewCourseBtn);
+          titleEl.textContent = course.title;
+          titleEl.style.minHeight = '3rem'; // Ensure consistent height for title area
           
           // Set the rest of the course details
           card.querySelector('.course-instructor span').textContent = course.instructor;
@@ -1504,21 +1487,45 @@
       },
 
       setupEnrollButton(card, course, isEnrolled) {
+        // Clear the existing button container
         const buttonContainer = card.querySelector('.enroll-button-container');
+        buttonContainer.innerHTML = '';
         
-        const button = document.createElement('button');
-        button.className = isEnrolled ? 
-          "w-full py-2 px-4 bg-red-50 text-red-600 border border-red-200 rounded hover:bg-red-100 transition-colors" : 
-          "w-full py-2 px-4 bg-brand-purple text-white rounded hover:bg-purple-700 transition-colors";
+        // Create a flex container for both buttons
+        const buttonsRow = document.createElement('div');
+        buttonsRow.className = 'flex gap-2 w-full';
         
-        button.innerHTML = isEnrolled ? 
-          '<i class="fas fa-user-minus mr-2"></i>Unenroll' : 
-          '<i class="fas fa-user-plus mr-2"></i>Enroll in Course';
+        // Create View Course button
+        const viewCourseBtn = document.createElement('button');
+        viewCourseBtn.className = "flex-1 py-2 px-2 bg-brand-purple text-white rounded hover:bg-purple-700 transition-colors text-sm";
+        viewCourseBtn.innerHTML = '<i class="fas fa-eye mr-1"></i> View Course';
+        viewCourseBtn.dataset.courseId = course.id;
+        viewCourseBtn.addEventListener('click', () => {
+          this.data.currentCourseId = course.id;
+          this.data.currentView = 'course-details';
+          this.updateURLWithoutRefresh(`#course/${course.id}`);
+          this.render();
+        });
         
-        button.dataset.action = isEnrolled ? 'unenroll' : 'enroll';
-        button.dataset.courseId = course.id;
+        // Create Enroll/Unenroll button
+        const actionButton = document.createElement('button');
+        actionButton.className = isEnrolled 
+          ? "flex-1 py-2 px-2 bg-red-50 text-red-600 border border-red-200 rounded hover:bg-red-100 transition-colors text-sm" 
+          : "flex-1 py-2 px-2 bg-brand-purple text-white rounded hover:bg-purple-700 transition-colors text-sm";
         
-        buttonContainer.appendChild(button);
+        actionButton.innerHTML = isEnrolled 
+          ? '<i class="fas fa-user-minus mr-1"></i>Unenroll' 
+          : '<i class="fas fa-user-plus mr-1"></i>Enroll';
+        
+        actionButton.dataset.action = isEnrolled ? 'unenroll' : 'enroll';
+        actionButton.dataset.courseId = course.id;
+        
+        // Add buttons to the flex container
+        buttonsRow.appendChild(viewCourseBtn);
+        buttonsRow.appendChild(actionButton);
+        
+        // Add the flex container to the button container
+        buttonContainer.appendChild(buttonsRow);
       },
 
       setupProgressSection(card, course) {
