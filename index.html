@@ -780,12 +780,20 @@
         // Check if user has any enrolled courses
         const enrolledCourses = this.data.courses.filter(course => this.checkEnrollmentStatus(course.id));
         
+        // Add back button and heading in a flex container, similar to course details page
+        const headingSection = `
+          <div class="flex items-center mb-4">
+            <button id="backFromProgressBtn" class="text-gray-600 hover:text-gray-900 mr-3">
+              <i class="fas fa-arrow-left"></i>
+            </button>
+            <h1 class="text-2xl font-bold text-gray-900">My Progress</h1>
+          </div>
+        `;
+        
         if (enrolledCourses.length === 0) {
           // No enrolled courses
           page.innerHTML = `
-            <div class="mb-8 border-b border-gray-200 pb-4">
-              <h1 class="text-3xl font-bold text-gray-900 mb-2">My Progress</h1>
-            </div>
+            ${headingSection}
             
             <div class="text-center py-10">
               <div class="text-gray-400 mb-4"><i class="fas fa-chart-bar text-5xl"></i></div>
@@ -800,6 +808,13 @@
           // Add click handler for the browse courses button
           setTimeout(() => {
             document.getElementById('browseCoursesBtn')?.addEventListener('click', () => {
+              this.data.currentView = 'courses';
+              this.updateURLWithoutRefresh('#courses');
+              this.render();
+            });
+            
+            // Add back button handler
+            document.getElementById('backFromProgressBtn')?.addEventListener('click', () => {
               this.data.currentView = 'courses';
               this.updateURLWithoutRefresh('#courses');
               this.render();
@@ -827,12 +842,9 @@
         
         overallProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
         
-        // Render the progress dashboard
+        // Render the progress dashboard with the back button
         page.innerHTML = `
-          <div class="mb-8 border-b border-gray-200 pb-4">
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">My Progress</h1>
-            <p class="text-gray-600">Track your learning journey</p>
-          </div>
+          ${headingSection}
           
           <div class="mb-8">
             <div class="bg-white rounded-lg shadow p-6">
@@ -875,9 +887,16 @@
           </div>
         `;
         
-        // After the page is added to the DOM, render course progress items
+        // After the page is added to the DOM, render course progress items and add event listeners
         setTimeout(() => {
           this.renderCourseProgressItems(enrolledCourses);
+          
+          // Add back button handler
+          document.getElementById('backFromProgressBtn')?.addEventListener('click', () => {
+            this.data.currentView = 'courses';
+            this.updateURLWithoutRefresh('#courses');
+            this.render();
+          });
         }, 0);
         
         return page;
