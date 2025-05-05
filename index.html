@@ -387,6 +387,7 @@
       
       saveUserData() {
         this.userData.lastUpdated = Date.now();
+        console.log('Saving user data:', this.userData);
         localStorage.setItem('learningData', JSON.stringify(this.userData));
       },
       
@@ -682,7 +683,13 @@
       },
 
       getLessonProgress(courseId, lessonId) {
-        return this.userData?.courses?.[courseId]?.lessons?.[lessonId]?.progress || 0;
+        if (!this.userData.courses[courseId]) {
+          this.userData.courses[courseId] = { lessons: {} };
+        }
+        if (!this.userData.courses[courseId].lessons[lessonId]) {
+          this.userData.courses[courseId].lessons[lessonId] = {};
+        }
+        return this.userData.courses[courseId]?.lessons?.[lessonId]?.progress || 0;
       },
 
       isLessonCompleted(courseId, lessonId) {
@@ -1476,103 +1483,37 @@
       renderVideoLesson(container, lesson) {
         const videoContainer = document.createElement('div');
         videoContainer.className = 'aspect-w-16 aspect-h-9 mb-4';
-        
+
         if (lesson.videoUrl) {
-          // If YouTube video
-          if (lesson.videoUrl.includes('youtube.com') || lesson.videoUrl.includes('youtu.be')) {
-            let videoId = '';
-            
-            // Extract YouTube video ID
-            if (lesson.videoUrl.includes('v=')) {
-              videoId = lesson.videoUrl.split('v=')[1].split('&')[0];
-            } else if (lesson.videoUrl.includes('youtu.be/')) {
-              videoId = lesson.videoUrl.split('youtu.be/')[1];
+          const videoElement = document.createElement('video');
+          videoElement.controls = true;
+          videoElement.className = 'w-full h-full';
+          videoElement.innerHTML = `<source src="${lesson.videoUrl}" type="video/mp4">Your browser does not support the video tag.`;
+
+          // Restore playback progress
+          const courseId = this.data.currentCourseId;
+          const lessonId = lesson.id;
+          const savedProgress = this.userData.courses?.[courseId]?.lessons?.[lessonId]?.progress || 0;
+
+          videoElement.addEventListener('loadedmetadata', () => {
+            if (savedProgress > 0 && savedProgress < 1) {
+              videoElement.currentTime = savedProgress * videoElement.duration;
             }
-            
-            if (videoId) {
-              videoContainer.innerHTML = `
-                <iframe 
-                  src="https://www.youtube.com/embed/${videoId}" 
-                  class="w-full h-96"
-                  frameborder="0" 
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                  allowfullscreen>
-                </iframe>
-              `;
-            } else {
-              videoContainer.innerHTML = `
-                <div class="bg-gray-100 w-full h-96 flex items-center justify-center">
-                  <p class="text-gray-500">Unable to load video</p>
-                </div>
-              `;
-            }
-          } else {
-            // If direct video URL
-            videoContainer.innerHTML = `
-              <video controls class="w-full h-full">
-                <source src="${lesson.videoUrl}" type="video/mp4">
-                Your browser does not support the video tag.
-              </video>
-            `;
-          }
-        } else if (lesson.sharePointUrl) {
-          // SharePoint embed
-          videoContainer.innerHTML = `
-            <div class="bg-gray-100 w-full h-96 flex flex-col items-center justify-center">
-              <p class="text-gray-500 mb-4">Video hosted on SharePoint</p>
-              <a href="${lesson.sharePointUrl}" target="_blank" class="px-4 py-2 bg-brand-purple text-white rounded hover:bg-purple-700">
-                <i class="fas fa-external-link-alt mr-2"></i>Open in SharePoint
-              </a>
-            </div>
-          `;
+          });
+
+          // Track playback progress
+          this.trackVideoProgress(courseId, lessonId, videoElement);
+
+          videoContainer.appendChild(videoElement);
         } else {
-          // No valid video source
           videoContainer.innerHTML = `
             <div class="bg-gray-100 w-full h-96 flex items-center justify-center">
               <p class="text-gray-500">No video available</p>
             </div>
           `;
         }
-        
+
         container.appendChild(videoContainer);
-        
-        // Add description if available
-        if (lesson.description) {
-          const description = document.createElement('div');
-          description.className = 'mt-4 text-gray-700';
-          description.innerHTML = `<p>${lesson.description}</p>`;
-          container.appendChild(description);
-        }
-        
-        // Add additional resources if available
-        if (lesson.additionalResources && lesson.additionalResources.length > 0) {
-          const resourcesSection = document.createElement('div');
-          resourcesSection.className = 'mt-6 pt-4 border-t border-gray-200';
-          
-          resourcesSection.innerHTML = `
-            <h3 class="font-medium text-gray-800 mb-3">Additional Resources</h3>
-            <ul class="space-y-2">
-              ${lesson.additionalResources.map(resource => `
-                <li>
-                  <a href="${resource.url}" target="_blank" class="flex items-center p-2 border border-gray-200 rounded hover:bg-gray-50">
-                    <span class="mr-3">
-                      ${resource.type === 'pdf' ? '<i class="far fa-file-pdf text-red-500"></i>' : ''}
-                      ${resource.type === 'doc' ? '<i class="far fa-file-word text-blue-500"></i>' : ''}
-                      ${resource.type === 'ppt' ? '<i class="far fa-file-powerpoint text-orange-500"></i>' : ''}
-                      ${resource.type === 'link' ? '<i class="fas fa-link text-purple-500"></i>' : ''}
-                    </span>
-                    <div>
-                      <p class="font-medium text-sm">${resource.title}</p>
-                      <p class="text-xs text-gray-500">${resource.description || ''}</p>
-                    </div>
-                  </a>
-                </li>
-              `).join('')}
-            </ul>
-          `;
-          
-          container.appendChild(resourcesSection);
-        }
       },
 
       renderDocumentLesson(container, lesson) {
@@ -1727,6 +1668,31 @@
           // Show info toast
           this.showToast('Lesson marked as incomplete', 'info');
         }
+      },
+
+      trackVideoProgress(courseId, lessonId, videoElement) {
+        videoElement.addEventListener('timeupdate', () => {
+          const currentTime = videoElement.currentTime;
+          const duration = videoElement.duration;
+
+          if (duration > 0) {
+            const progress = currentTime / duration;
+
+            if (progress >= 1) {
+              this.markLessonComplete(courseId, lessonId);
+            } else {
+              if (!this.userData.courses[courseId]) {
+                this.userData.courses[courseId] = { lessons: {} };
+              }
+              if (!this.userData.courses[courseId].lessons[lessonId]) {
+                this.userData.courses[courseId].lessons[lessonId] = {};
+              }
+
+              this.userData.courses[courseId].lessons[lessonId].progress = progress;
+              this.saveUserData();
+            }
+          }
+        });
       },
 
       renderCourseCards() {
@@ -2091,7 +2057,6 @@
         if (!this.userData.courses[courseId]) {
           this.userData.courses[courseId] = { lessons: {} };
         }
-        
         this.userData.courses[courseId].enrolled = true;
         this.userData.courses[courseId].enrolledAt = Date.now();
         
