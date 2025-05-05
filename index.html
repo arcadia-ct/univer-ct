@@ -170,6 +170,10 @@
           <div class="mt-auto pt-4">
             <div class="enroll-button-container mb-4">
               <!-- Buttons will be added here -->
+              <button class="px-4 py-2 bg-brand-purple text-white rounded hover:bg-purple-700 transition-colors text-sm font-medium flex items-center"
+                data-course-id="${course.id}">
+                <i class="fas fa-arrow-right mr-2"></i>View Course
+              </button>
             </div>
             <hr class="border-gray-200 mb-4">
             <div class="course-progress-container"></div>
@@ -449,9 +453,9 @@
       
       saveUserData() {
         this.userData.lastUpdated = Date.now();
-        console.log('Saving user data:', this.userData);
         localStorage.setItem('learningData', JSON.stringify(this.userData));
       },
+      
       
       saveUserProfile(profile) {
         localStorage.setItem('userProfile', JSON.stringify(profile));
@@ -1088,189 +1092,183 @@
         const page = document.createElement('div');
         page.id = 'progressPage';
         page.className = 'block';
-        
-        // Add back button and heading in a flex container
+
+        // Add back button, heading, and export/import buttons
         const headingSection = `
-          <div class="flex items-center mb-4">
-            <button id="backFromProgressBtn" class="text-gray-600 hover:text-gray-900 mr-3">
-              <i class="fas fa-arrow-left"></i>
-            </button>
-            <h1 class="text-2xl font-bold text-gray-900">My Progress</h1>
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center">
+              <button id="backFromProgressBtn" class="text-gray-600 hover:text-gray-900 mr-3">
+                <i class="fas fa-arrow-left"></i>
+              </button>
+              <h1 class="text-2xl font-bold text-gray-900">My Progress</h1>
+            </div>
+            <div class="flex space-x-2">
+              <button id="exportProgressBtn" class="px-4 py-2 bg-brand-purple text-white rounded hover:bg-purple-700">
+                <i class="fas fa-download mr-2"></i>Export Progress
+              </button>
+              <button id="importProgressBtn" class="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+                <i class="fas fa-upload mr-2"></i>Import Progress
+              </button>
+              <input id="importProgressFile" type="file" accept="application/json" class="hidden">
+            </div>
           </div>
         `;
-        
-        // Check if user has any enrolled courses
-        const enrolledCourses = this.data.courses.filter(course => this.checkEnrollmentStatus(course.id));
-        
-        if (enrolledCourses.length === 0) {
-          // No enrolled courses
-          page.innerHTML = `
-            ${headingSection}
-            
-            <div class="text-center py-10">
-              <div class="text-gray-400 mb-4"><i class="fas fa-chart-bar text-5xl"></i></div>
-              <h3 class="text-xl font-semibold text-gray-700 mb-2">No Enrolled Courses</h3>
-              <p class="text-gray-500 mb-4">Enroll in courses to track your learning progress.</p>
-              <button id="browseCoursesBtn" class="px-4 py-2 bg-brand-purple text-white rounded hover:bg-purple-700">
-                Browse Courses
-              </button>
-            </div>
-          `;
-          
-          // Add click handler for the browse courses button
-          setTimeout(() => {
-            document.getElementById('browseCoursesBtn')?.addEventListener('click', () => {
-              this.data.currentView = 'courses';
-              this.updateURLWithoutRefresh('#courses');
-              this.render();
-            });
-            
-            // Add back button handler
-            document.getElementById('backFromProgressBtn')?.addEventListener('click', () => {
-              this.data.currentView = 'courses';
-              this.updateURLWithoutRefresh('#courses');
-              this.render();
-            });
-          }, 0);
-          
-          return page;
-        }
-        
-        // User has enrolled courses - calculate overall statistics
-        let totalLessons = 0;
-        let completedLessons = 0;
-        
-        enrolledCourses.forEach(course => {
-          if (course.lessons) {
-            course.lessons.forEach(lesson => {
-              totalLessons++;
-              const progress = this.getLessonProgress(course.id, lesson.id);
-              if (progress >= 1) {
-                completedLessons++;
-              }
-            });
-          }
-        });
-        
+
+        // Calculate overall progress
+        const totalLessons = this.data.courses.reduce((sum, course) => sum + course.lessons.length, 0);
+        const completedLessons = this.getCompletedLessonsCount();
         const overallProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
-        
-        // Render the progress dashboard with the back button
+
+        // Filter in-progress courses
+        const inProgressCourses = this.data.courses.filter(course => {
+          return course.lessons.some(lesson => {
+            const progress = this.getLessonProgress(course.id, lesson.id);
+            return progress > 0 && progress < 1; // In-progress lessons
+          });
+        });
+
+        // Add the rest of the progress page content
         page.innerHTML = `
           ${headingSection}
-          
           <div class="mb-8">
             <div class="bg-white rounded-lg shadow p-6">
               <h2 class="text-xl font-semibold text-gray-800 mb-4">Overall Progress</h2>
-              
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div class="bg-gray-50 p-4 rounded-lg">
-                  <div class="text-3xl font-bold text-brand-purple mb-1">${enrolledCourses.length}</div>
-                  <div class="text-sm text-gray-600">Enrolled Courses</div>
-                </div>
-                
-                <div class="bg-gray-50 p-4 rounded-lg">
-                  <div class="text-3xl font-bold text-brand-purple mb-1">${completedLessons}/${totalLessons}</div>
-                  <div class="text-sm text-gray-600">Lessons Completed</div>
-                </div>
-                
                 <div class="bg-gray-50 p-4 rounded-lg">
                   <div class="text-3xl font-bold text-brand-purple mb-1">${overallProgress}%</div>
                   <div class="text-sm text-gray-600">Overall Completion</div>
                 </div>
-              </div>
-              
-              <div class="mb-2 flex justify-between text-sm">
-                <span class="text-gray-600">Total Progress</span>
-                <span class="font-medium">${overallProgress}%</span>
-              </div>
-              
-              <div class="progress-bar h-2">
-                <div class="progress-bar-fill" style="width: ${overallProgress}%"></div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                  <div class="text-3xl font-bold text-brand-purple mb-1">${this.data.courses.filter(course => this.checkEnrollmentStatus(course.id)).length}</div>
+                  <div class="text-sm text-gray-600">Enrolled Courses</div>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                  <div class="text-3xl font-bold text-brand-purple mb-1">${completedLessons}</div>
+                  <div class="text-sm text-gray-600">Lessons Completed</div>
+                </div>
               </div>
             </div>
           </div>
-          
-          <div>
-            <h2 class="text-xl font-semibold text-gray-800 mb-4">Course Progress</h2>
-            
-            <div class="space-y-4" id="courseProgressList">
-              <!-- Individual course progress will be rendered here -->
+
+          <div class="mb-8">
+            <div class="bg-white rounded-lg shadow p-6">
+              <h2 class="text-xl font-semibold text-gray-800 mb-4">In-Progress Courses</h2>
+              <div class="space-y-4">
+                ${inProgressCourses.length > 0
+                  ? inProgressCourses.map(course => {
+                      // Calculate course progress
+                      const totalLessons = course.lessons.length;
+                      const completedLessons = course.lessons.filter(lesson => this.getLessonProgress(course.id, lesson.id) >= 1).length;
+                      const progressPercent = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+
+                      return `
+                        <div class="flex flex-col border-b border-gray-200 pb-4">
+                          <div class="flex justify-between items-center">
+                            <div>
+                              <h3 class="text-lg font-medium text-gray-800">${course.title}</h3>
+                              <p class="text-sm text-gray-600">${course.description}</p>
+                            </div>
+                            <button class="px-4 py-2 bg-brand-purple text-white rounded hover:bg-purple-700 transition-colors text-sm font-medium flex items-center"
+                              data-course-id="${course.id}">
+                              <i class="fas fa-arrow-right mr-2"></i>View Course
+                            </button>
+                          </div>
+                          <div class="mt-2">
+                            <div class="flex justify-between text-xs mb-1">
+                              <span class="text-gray-600">Progress</span>
+                              <span class="font-medium">${progressPercent}%</span>
+                            </div>
+                            <div class="progress-bar">
+                              <div class="progress-bar-fill" style="width: ${progressPercent}%;"></div>
+                            </div>
+                          </div>
+                        </div>
+                      `;
+                    }).join('')
+                  : '<p class="text-sm text-gray-500">No in-progress courses found.</p>'
+                }
+              </div>
             </div>
           </div>
         `;
-        
-        // After the page is added to the DOM, render course progress items and add event listeners
+
+        // Add event listeners for export and import buttons
         setTimeout(() => {
-          // Render individual course progress cards
-          const container = document.getElementById('courseProgressList');
-          if (container) {
-            enrolledCourses.forEach(course => {
-              // Calculate course progress
-              let totalCourseLessons = course.lessons ? course.lessons.length : 0;
-              let completedCourseLessons = 0;
-              let inProgressLessons = 0;
-              
-              if (course.lessons) {
-                course.lessons.forEach(lesson => {
-                  const progress = this.getLessonProgress(course.id, lesson.id);
-                  if (progress >= 1) {
-                    completedCourseLessons++;
-                  } else if (progress > 0) {
-                    inProgressLessons++;
-                  }
-                });
-              }
-              
-              const progressPercent = totalCourseLessons > 0 ? 
-                Math.round((completedCourseLessons / totalCourseLessons) * 100) : 0;
-              
-              // Create course progress item
-              const courseItem = document.createElement('div');
-              courseItem.className = 'bg-white rounded-lg shadow overflow-hidden';
-              courseItem.innerHTML = `
-                <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between">
-                  <div class="mb-3 sm:mb-0">
-                    <h3 class="font-semibold text-gray-800">${course.title}</h3>
-                    <p class="text-sm text-gray-600">${completedCourseLessons} of ${totalCourseLessons} lessons completed</p>
-                  </div>
-                  
-                  <div class="flex space-x-3 items-center">
-                    <div class="text-right">
-                      <span class="font-medium text-lg">${progressPercent}%</span>
-                    </div>
-                    
-                    <button class="viewCourseBtn px-3 py-1 bg-brand-purple text-white rounded hover:bg-purple-700 text-sm" data-course-id="${course.id}">
-                      View Course
-                    </button>
-                  </div>
-                </div>
-                
-                <div class="progress-bar h-1">
-                  <div class="progress-bar-fill" style="width: ${progressPercent}%"></div>
-                </div>
-              `;
-              
-              // Add click handler for view course button
-              courseItem.querySelector('.viewCourseBtn').addEventListener('click', () => {
-                this.data.currentCourseId = course.id;
-                this.data.currentView = 'course-details';
-                this.updateURLWithoutRefresh(`#course/${course.id}`);
-                this.render();
-              });
-              
-              container.appendChild(courseItem);
+          // Add event listener for the back button
+          const backButton = document.getElementById('backFromProgressBtn');
+          if (backButton) {
+            backButton.addEventListener('click', () => {
+              this.data.currentView = 'courses'; // Navigate back to the courses page
+              this.updateURLWithoutRefresh('#courses');
+              this.render();
             });
           }
-          
-          // Add back button handler
-          document.getElementById('backFromProgressBtn')?.addEventListener('click', () => {
-            this.data.currentView = 'courses';
-            this.updateURLWithoutRefresh('#courses');
-            this.render();
+
+          setTimeout(() => {
+            document.getElementById('exportProgressBtn')?.addEventListener('click', this.exportProgress.bind(this));
+
+            const importProgressFile = document.getElementById('importProgressFile');
+            const importProgressBtn = document.getElementById('importProgressBtn');
+
+            if (importProgressBtn && importProgressFile) {
+              // Reset the file input to prevent duplicate triggers
+              importProgressFile.value = '';
+
+              importProgressBtn.addEventListener('click', () => {
+                importProgressFile.click();
+              });
+
+              importProgressFile.addEventListener('change', (event) => {
+                this.importProgress(event);
+              });
+            }
+          }, 0);
+
+          // Add event listeners for in-progress course buttons
+          const courseButtons = page.querySelectorAll('[data-course-id]');
+          courseButtons.forEach(button => {
+            button.addEventListener('click', () => {
+              const courseId = button.dataset.courseId;
+              this.data.currentCourseId = courseId;
+              this.data.currentView = 'course-details';
+              this.updateURLWithoutRefresh(`#course/${courseId}`);
+              this.render();
+            });
           });
         }, 0);
-        
+
         return page;
+      },
+
+      importProgress(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const importedData = JSON.parse(e.target.result);
+
+            // Validate the imported data structure
+            if (importedData && importedData.userProfile && importedData.progress) {
+              // Update user profile and progress
+              localStorage.setItem('userProfile', JSON.stringify(importedData.userProfile));
+              this.userData = importedData.progress;
+              this.saveUserData();
+
+              // Re-render the UI to reflect the imported progress
+              this.render();
+              this.showToast('Progress imported successfully!', 'success');
+            } else {
+              throw new Error('Invalid progress data format.');
+            }
+          } catch (error) {
+            console.error('Error importing progress:', error);
+            this.showToast('Failed to import progress. Please check the file format.', 'error');
+          }
+        };
+
+        reader.readAsText(file);
       },
 
       renderCourseDetailsPage() {
@@ -2365,6 +2363,49 @@
             this.showProfileModal();
           });
         }
+      },
+
+      exportProgress() {
+        const userProfile = JSON.parse(localStorage.getItem('userProfile'));
+        const data = {
+          userProfile,
+          progress: this.userData,
+        };
+
+        const dataStr = JSON.stringify(data, null, 2); // Pretty-print JSON
+        const blob = new Blob([dataStr], { type: 'application/json' });
+
+        // Generate a random filename
+        const randomId = Math.random().toString(36).substring(2, 10);
+        const filename = `univert_learning_progress_${randomId}.json`;
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+
+        URL.revokeObjectURL(url); // Clean up the URL object
+        this.showToast('Progress exported successfully!', 'success');
+      },
+
+      getCompletedLessonsCount() {
+        let completedLessons = 0;
+
+        // Iterate through all courses in user data
+        for (const courseId in this.userData.courses) {
+          const course = this.userData.courses[courseId];
+          if (course.lessons) {
+            for (const lessonId in course.lessons) {
+              const lesson = course.lessons[lessonId];
+              if (lesson.progress >= 1) {
+                completedLessons++;
+              }
+            }
+          }
+        }
+
+        return completedLessons;
       }
     };
 
