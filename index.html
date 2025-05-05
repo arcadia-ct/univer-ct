@@ -400,6 +400,9 @@
       setupEventListeners() {
         // Global event delegation
         document.addEventListener('click', this.handleGlobalClick.bind(this));
+
+        // Set up search functionality
+        this.setupSearchEventListeners();
       },
       
       handleGlobalClick(event) {
@@ -416,6 +419,67 @@
         // Add more global click handlers...
       },
       
+      setupSearchEventListeners() {
+        const searchInput = document.getElementById('searchInput');
+        const clearSearch = document.getElementById('clearSearch');
+        const sidebarSearchInput = document.getElementById('courseTreeSearch');
+        const sidebarClearSearch = document.getElementById('clearTreeSearch');
+      
+        const handleSearch = () => {
+          const query = searchInput ? searchInput.value : sidebarSearchInput.value;
+          this.data.filters.searchQuery = query;
+      
+          // Update the search term in both search bars
+          if (searchInput) searchInput.value = query;
+          if (sidebarSearchInput) sidebarSearchInput.value = query;
+      
+          // Show or hide the clear buttons
+          if (query) {
+            if (clearSearch) clearSearch.classList.remove('hidden');
+            if (sidebarClearSearch) sidebarClearSearch.classList.remove('hidden');
+          } else {
+            if (clearSearch) clearSearch.classList.add('hidden');
+            if (sidebarClearSearch) sidebarClearSearch.classList.add('hidden');
+          }
+      
+          // Update both the left pane and the "courses" section
+          this.renderCourseTree();
+          this.renderCourseCards();
+        };
+      
+        if (searchInput) {
+          searchInput.addEventListener('input', handleSearch);
+        }
+      
+        if (clearSearch) {
+          clearSearch.addEventListener('click', () => {
+            if (searchInput) searchInput.value = '';
+            if (sidebarSearchInput) sidebarSearchInput.value = '';
+            this.data.filters.searchQuery = '';
+            clearSearch.classList.add('hidden');
+            sidebarClearSearch.classList.add('hidden');
+            this.renderCourseTree();
+            this.renderCourseCards();
+          });
+        }
+      
+        if (sidebarSearchInput) {
+          sidebarSearchInput.addEventListener('input', handleSearch);
+        }
+      
+        if (sidebarClearSearch) {
+          sidebarClearSearch.addEventListener('click', () => {
+            if (sidebarSearchInput) sidebarSearchInput.value = '';
+            if (searchInput) searchInput.value = '';
+            this.data.filters.searchQuery = '';
+            sidebarClearSearch.classList.add('hidden');
+            clearSearch.classList.add('hidden');
+            this.renderCourseTree();
+            this.renderCourseCards();
+          });
+        }
+      },
+
       // Component rendering methods
       renderNavigation() {
         const nav = document.getElementById('main-nav');
@@ -1965,14 +2029,15 @@
       
       filterCoursesBySearch(courses, query) {
         if (!query) return courses;
-        
+
         const searchQuery = query.toLowerCase().trim();
-        
-        return courses.filter(course => 
-          course.title.toLowerCase().includes(searchQuery) ||
-          course.description.toLowerCase().includes(searchQuery) ||
-          course.instructor.toLowerCase().includes(searchQuery) ||
-          course.lessons.some(lesson => lesson.title.toLowerCase().includes(searchQuery))
+
+        return courses.filter(course =>
+          course.title.toLowerCase().includes(searchQuery) || // Search in title
+          course.description.toLowerCase().includes(searchQuery) || // Search in description
+          course.instructor.toLowerCase().includes(searchQuery) || // Search in instructor
+          (course.tags && course.tags.some(tag => tag.toLowerCase().includes(searchQuery))) || // Search in tags
+          course.lessons.some(lesson => lesson.title.toLowerCase().includes(searchQuery)) // Search in lessons
         );
       },
       
