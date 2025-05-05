@@ -510,27 +510,27 @@
       renderCourseTree() {
         const courseTreeList = document.getElementById('courseTreeList');
         if (!courseTreeList) return;
-        
+
+        // Clear the course tree list
         courseTreeList.innerHTML = '';
-        
+
         // Filter courses based on the selected filter
         let coursesToShow = this.data.courses;
-        
-        // If "enrolled" filter is selected, only show enrolled courses
+
         if (this.data.filters.courseTree === 'enrolled') {
           coursesToShow = this.data.courses.filter(course => this.checkEnrollmentStatus(course.id));
         }
-        
+
         // If there's a search query, filter by it
         if (this.data.filters.searchQuery) {
           const query = this.data.filters.searchQuery.toLowerCase();
-          coursesToShow = coursesToShow.filter(course => 
-            course.title.toLowerCase().includes(query) || 
+          coursesToShow = coursesToShow.filter(course =>
+            course.title.toLowerCase().includes(query) ||
             course.description.toLowerCase().includes(query) ||
             course.lessons.some(lesson => lesson.title.toLowerCase().includes(query))
           );
         }
-        
+
         // If no courses to show after filtering
         if (coursesToShow.length === 0) {
           courseTreeList.innerHTML = `
@@ -541,73 +541,65 @@
           `;
           return;
         }
-        
+
         // Create course tree items
         coursesToShow.forEach(course => {
           const template = document.getElementById('course-tree-item-template');
           const item = template.content.cloneNode(true);
-          
+
           // Set course data and title
           const courseItem = item.querySelector('.course-tree-item');
           courseItem.dataset.courseId = course.id;
           item.querySelector('.course-tree-title').textContent = course.title;
-          
+
           // Set icon based on enrollment status
           const iconElement = item.querySelector('.course-icon i');
           if (this.checkEnrollmentStatus(course.id)) {
             iconElement.className = 'fas fa-book text-green-500';
           }
-          
+
           // Add click handler for expanding/collapsing
           const headerDiv = item.querySelector('.course-tree-item > div');
           const toggleIcon = item.querySelector('.course-tree-toggle i');
           const lessonsList = item.querySelector('.course-tree-lessons');
-          
+
           // Initially hide lessons
           lessonsList.classList.add('hidden');
-          
+
           // Click handler to toggle lessons visibility
           headerDiv.addEventListener('click', () => {
             lessonsList.classList.toggle('hidden');
             toggleIcon.classList.toggle('fa-chevron-right');
             toggleIcon.classList.toggle('fa-chevron-down');
           });
-          
+
           // Populate lessons
           course.lessons.forEach(lesson => {
             const lessonItem = document.createElement('div');
             lessonItem.className = 'py-1 pl-2';
-            
+
             // Determine if lesson is completed or in progress
             let lessonIcon, textClass;
             const progress = this.getLessonProgress(course.id, lesson.id);
-            
+
             if (progress >= 1) {
               lessonIcon = '<i class="fas fa-check-circle text-green-500 mr-2"></i>';
               textClass = 'text-gray-700';
             } else if (progress > 0) {
-              if (lesson.contentType === 'video') {
-                lessonIcon = '<i class="fas fa-play-circle text-blue-500 mr-2"></i>';
-              } else {
-                lessonIcon = '<i class="fas fa-file-alt text-blue-500 mr-2"></i>';
-              }
+              lessonIcon = '<i class="fas fa-play-circle text-blue-500 mr-2"></i>';
               textClass = 'text-gray-700';
             } else {
-              if (lesson.contentType === 'video') {
-                lessonIcon = '<i class="fas fa-play-circle text-gray-400 mr-2"></i>';
-              } else {
-                lessonIcon = '<i class="fas fa-file-alt text-gray-400 mr-2"></i>';
-              }
+              lessonIcon = '<i class="fas fa-play-circle text-gray-400 mr-2"></i>';
               textClass = 'text-gray-500';
             }
-            
+
             lessonItem.innerHTML = `
               <a href="#" class="flex items-center text-sm ${textClass} hover:text-gray-900 truncate">
                 ${lessonIcon}
                 <span class="truncate">${lesson.title}</span>
               </a>
             `;
-            
+
             // Add click handler for lesson
             lessonItem.querySelector('a').addEventListener('click', (e) => {
               e.preventDefault();
@@ -617,10 +609,10 @@
               this.updateURLWithoutRefresh(`#course/${course.id}/${lesson.id}`);
               this.render();
             });
-            
+
             lessonsList.appendChild(lessonItem);
           });
-          
+
           courseTreeList.appendChild(item);
         });
       },
@@ -637,82 +629,49 @@
         // Course tree filter buttons
         const filterAllBtn = document.getElementById('filterAllCourses');
         const filterEnrolledBtn = document.getElementById('filterEnrolledCourses');
-        
+
         if (filterAllBtn && filterEnrolledBtn) {
           filterAllBtn.addEventListener('click', () => {
             this.data.filters.courseTree = 'all';
             this.renderCourseTree();
+
+            // Update active state
+            filterAllBtn.classList.add('active');
+            filterEnrolledBtn.classList.remove('active');
           });
-          
+
           filterEnrolledBtn.addEventListener('click', () => {
             this.data.filters.courseTree = 'enrolled';
             this.renderCourseTree();
+
+            // Update active state
+            filterEnrolledBtn.classList.add('active');
+            filterAllBtn.classList.remove('active');
           });
         }
-        
+
         // Course tree search
         const searchInput = document.getElementById('courseTreeSearch');
         const clearSearch = document.getElementById('clearTreeSearch');
-        
+
         if (searchInput && clearSearch) {
           searchInput.addEventListener('input', () => {
             this.data.filters.searchQuery = searchInput.value;
-            
+
             if (searchInput.value) {
               clearSearch.classList.remove('hidden');
             } else {
               clearSearch.classList.add('hidden');
             }
-            
+
             this.renderCourseTree();
           });
-          
+
           clearSearch.addEventListener('click', () => {
             searchInput.value = '';
             this.data.filters.searchQuery = '';
             clearSearch.classList.add('hidden');
             this.renderCourseTree();
-          });
-        }
-        
-        // Improved sidebar toggle functionality
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        const sidebar = document.getElementById('sidebar');
-        const mainContent = document.getElementById('main-content');
-        const appContainer = document.querySelector('.max-w-7xl');
-
-        if (sidebarToggle && sidebar) {
-          sidebarToggle.addEventListener('click', () => {
-            // Toggle sidebar collapsed state
-            const sidebarCollapsed = !sidebar.classList.contains('collapsed');
-            
-            if (sidebarCollapsed) {
-              // Collapse sidebar
-              sidebar.classList.add('collapsed');
-              sidebar.classList.remove('w-64');
-              sidebar.classList.add('w-16');
-              appContainer.classList.add('sidebar-collapsed');
-              
-              // Update toggle icon to show expand option
-              sidebarToggle.innerHTML = '<i class="fas fa-chevron-right"></i>';
-              sidebarToggle.setAttribute('title', 'Expand sidebar');
-              
-              // Hide text elements, show only icons
-              this.updateSidebarForCollapsedState(true);
-            } else {
-              // Expand sidebar
-              sidebar.classList.remove('collapsed');
-              sidebar.classList.add('w-64');
-              sidebar.classList.remove('w-16');
-              appContainer.classList.remove('sidebar-collapsed');
-              
-              // Update toggle icon to show collapse option
-              sidebarToggle.innerHTML = '<i class="fas fa-chevron-left"></i>';
-              sidebarToggle.setAttribute('title', 'Collapse sidebar');
-              
-              // Show all sidebar content
-              this.updateSidebarForCollapsedState(false);
-            }
           });
         }
       },
