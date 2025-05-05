@@ -49,5 +49,6 @@ The platform can be easily customized by modifying the `platformConfig` object i
 ## Building the App
 
 ```
+python .\run_pre_build.py
 pyinstaller --onefile --add-data "index.html;." --add-data "config.js;." serve.py
 ```

@@ -222,7 +222,7 @@
   </div>
 
   <div id="document-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
-    <!-- Document modal content -->
+    <!-- Modal content will be dynamically added here -->
   </div>
 
   <script>
@@ -1514,11 +1514,11 @@
       renderDocumentLesson(container, lesson) {
         const documentContainer = document.createElement('div');
         documentContainer.className = 'mb-4';
-        
+
         // Determine document type icon and styling
         let documentIcon, documentColor;
-        
-        switch(lesson.documentType) {
+
+        switch (lesson.documentType) {
           case 'pdf':
             documentIcon = 'far fa-file-pdf';
             documentColor = 'text-red-500';
@@ -1533,55 +1533,31 @@
             documentIcon = 'far fa-file-powerpoint';
             documentColor = 'text-orange-500';
             break;
-          case 'excel':
-          case 'xlsx':
-            documentIcon = 'far fa-file-excel';
-            documentColor = 'text-green-500';
-            break;
           default:
             documentIcon = 'far fa-file';
             documentColor = 'text-gray-500';
         }
-        
-        // If document has an embed URL or can be embedded directly
+
+        // If document has a URL
         if (lesson.documentUrl) {
-          // For PDFs, we can embed them directly
-          if (lesson.documentType === 'pdf') {
-            documentContainer.innerHTML = `
-              <div class="w-full h-[800px] border border-gray-200 rounded">
-                <object data="${lesson.documentUrl}" type="application/pdf" width="100%" height="100%">
-                  <p>It appears your browser doesn't support embedded PDFs. 
-                  <a href="${lesson.documentUrl}" target="_blank">Click here to download the PDF</a>.</p>
-                </object>
-              </div>
-            `;
-          } else {
-            // For other document types, provide download link
-            documentContainer.innerHTML = `
-              <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 flex flex-col items-center justify-center">
-                <div class="text-5xl ${documentColor} mb-4">
-                  <i class="${documentIcon}"></i>
-                </div>
-                <h3 class="text-lg font-medium text-gray-900 mb-2">${lesson.title}</h3>
-                <p class="text-gray-500 mb-4">Click the button below to access the document</p>
-                <a href="${lesson.documentUrl}" target="_blank" class="px-4 py-2 bg-brand-purple text-white rounded hover:bg-purple-700">
-                  <i class="fas fa-download mr-2"></i>Download Document
-                </a>
-              </div>
-            `;
-          }
-        } else if (lesson.sharePointUrl) {
-          // SharePoint document
+          const encodedUrl = encodeURIComponent(lesson.documentUrl);
+          const officeViewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodedUrl}`;
+
           documentContainer.innerHTML = `
             <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 flex flex-col items-center justify-center">
               <div class="text-5xl ${documentColor} mb-4">
                 <i class="${documentIcon}"></i>
               </div>
               <h3 class="text-lg font-medium text-gray-900 mb-2">${lesson.title}</h3>
-              <p class="text-gray-500 mb-4">This document is hosted on SharePoint</p>
-              <a href="${lesson.sharePointUrl}" target="_blank" class="px-4 py-2 bg-brand-purple text-white rounded hover:bg-purple-700">
-                <i class="fas fa-external-link-alt mr-2"></i>Open in SharePoint
-              </a>
+              <p class="text-gray-500 mb-4">Click the button below to view the document</p>
+              <div class="flex space-x-4">
+                <a href="${officeViewerUrl}" target="_blank" class="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+                  <i class="fas fa-external-link-alt mr-2"></i>Open in Office Viewer
+                </a>
+                <a href="${lesson.documentUrl}" target="_blank" class="px-4 py-2 bg-brand-purple text-white rounded hover:bg-purple-700">
+                  <i class="fas fa-share-square mr-2"></i>Open in SharePoint
+                </a>
+              </div>
             </div>
           `;
         } else {
@@ -1592,15 +1568,44 @@
             </div>
           `;
         }
-        
+
         container.appendChild(documentContainer);
-        
-        // Add description if available
-        if (lesson.description) {
-          const description = document.createElement('div');
-          description.className = 'mt-4 text-gray-700';
-          description.innerHTML = `<p>${lesson.description}</p>`;
-          container.appendChild(description);
+      },
+
+      openDocumentInModal(documentUrl, title) {
+        const modal = document.getElementById('document-modal');
+        if (!modal) return;
+
+        // Set modal content
+        modal.innerHTML = `
+          <div class="bg-white rounded-lg shadow-lg overflow-hidden w-full max-w-4xl">
+            <div class="flex justify-between items-center p-4 border-b border-gray-200">
+              <h2 class="text-lg font-medium text-gray-900">${title}</h2>
+              <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            <div class="p-4">
+              <iframe 
+                src="${documentUrl}" 
+                width="100%" 
+                height="600px" 
+                frameborder="0" 
+                allowfullscreen>
+              </iframe>
+            </div>
+          </div>
+        `;
+
+        // Show the modal
+        modal.classList.remove('hidden');
+
+        // Add event listener to close the modal
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        if (closeModalBtn) {
+          closeModalBtn.addEventListener('click', () => {
+            modal.classList.add('hidden');
+          });
         }
       },
 
