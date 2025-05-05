@@ -225,6 +225,68 @@
     <!-- Modal content will be dynamically added here -->
   </div>
 
+  <div id="profileOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+      <h2 class="text-xl font-bold text-gray-800 mb-4">Set Up Your Profile</h2>
+      <form id="profileForm" class="space-y-4">
+        <div>
+          <label for="firstName" class="block text-sm font-medium text-gray-700">First Name</label>
+          <input id="firstName" type="text" class="w-full mt-1 p-2 border border-gray-300 rounded focus:ring-brand-purple focus:border-brand-purple" required>
+        </div>
+        <div>
+          <label for="lastName" class="block text-sm font-medium text-gray-700">Last Name</label>
+          <input id="lastName" type="text" class="w-full mt-1 p-2 border border-gray-300 rounded focus:ring-brand-purple focus:border-brand-purple" required>
+        </div>
+        <div>
+          <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+          <input id="email" type="email" class="w-full mt-1 p-2 border border-gray-300 rounded focus:ring-brand-purple focus:border-brand-purple" required>
+        </div>
+        <button type="submit" class="w-full bg-brand-purple text-white py-2 rounded hover:bg-purple-700">Save Profile</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="profileModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+      <h2 class="text-xl font-bold text-gray-800 mb-4">Your Profile</h2>
+      <div id="profileDetails" class="space-y-4">
+        <div class="space-y-4">
+          <div>
+            <label for="viewFirstName" class="block text-sm font-medium text-gray-700">First Name</label>
+            <input id="viewFirstName" type="text" disabled class="w-full mt-1 p-2 border border-gray-300 rounded bg-gray-100 text-gray-700 focus:ring-0 focus:border-gray-300">
+          </div>
+          <div>
+            <label for="viewLastName" class="block text-sm font-medium text-gray-700">Last Name</label>
+            <input id="viewLastName" type="text" disabled class="w-full mt-1 p-2 border border-gray-300 rounded bg-gray-100 text-gray-700 focus:ring-0 focus:border-gray-300">
+          </div>
+          <div>
+            <label for="viewEmail" class="block text-sm font-medium text-gray-700">Email</label>
+            <input id="viewEmail" type="email" disabled class="w-full mt-1 p-2 border border-gray-300 rounded bg-gray-100 text-gray-700 focus:ring-0 focus:border-gray-300">
+          </div>
+        </div>
+      </div>
+      <div id="profileEditForm" class="space-y-4 hidden">
+        <div>
+          <label for="editFirstName" class="block text-sm font-medium text-gray-700">First Name</label>
+          <input id="editFirstName" type="text" class="w-full mt-1 p-2 border border-gray-300 rounded focus:ring-brand-purple focus:border-brand-purple">
+        </div>
+        <div>
+          <label for="editLastName" class="block text-sm font-medium text-gray-700">Last Name</label>
+          <input id="editLastName" type="text" class="w-full mt-1 p-2 border border-gray-300 rounded focus:ring-brand-purple focus:border-brand-purple">
+        </div>
+        <div>
+          <label for="editEmail" class="block text-sm font-medium text-gray-700">Email</label>
+          <input id="editEmail" type="email" class="w-full mt-1 p-2 border border-gray-300 rounded focus:ring-brand-purple focus:border-brand-purple">
+        </div>
+      </div>
+      <div class="flex justify-between mt-4">
+        <button id="editProfileBtn" class="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">Edit</button>
+        <button id="saveProfileBtn" class="px-4 py-2 bg-brand-purple text-white rounded hover:bg-purple-700 hidden">Save</button>
+        <button id="closeProfileModal" class="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">Close</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // Global state
     const AppState = {
@@ -243,41 +305,32 @@
       
       // State management methods
       async init(configUrl) {
-        // Show loading indicator
         this.showLoadingIndicator();
-        
-        // Allow override of config URL
-        if (configUrl) {
-          this.configUrl = configUrl;
+
+        // Check if user profile exists
+        const storedProfile = localStorage.getItem('userProfile');
+        if (!storedProfile) {
+          this.showProfileOverlay();
+          return;
         }
-        
+
         try {
-          // Load configuration from external JSON file
+          if (configUrl) {
+            this.configUrl = configUrl;
+          }
           await this.loadConfiguration();
-          
-          // Load user data from localStorage
           this.loadUserData();
-          
-          // IMPORTANT: Parse URL first to set current view based on the URL
           this.parseURL();
-          
-          // Initialize UI
           this.render();
-          
-          // Set up event listeners for global components
           this.setupEventListeners();
-          
-          // Set up window popstate event for back/forward navigation
-          window.addEventListener('popstate', (e) => {
+          window.addEventListener('popstate', () => {
             this.parseURL();
             this.render();
           });
-          
         } catch (error) {
           console.error("Failed to initialize application:", error);
           this.showToast('Failed to load course data. Please try again later.', 'error');
         } finally {
-          // Hide loading indicator
           this.hideLoadingIndicator();
         }
       },
@@ -327,6 +380,15 @@
       },
       
       initWithConfig(config) {
+
+
+        // Check if user profile exists
+        const storedProfile = localStorage.getItem('userProfile');
+        if (!storedProfile) {
+          this.showProfileOverlay(); // Force user to enter profile details
+          return; // Stop further initialization until profile is saved
+        }
+
         // Show loading indicator
         this.showLoadingIndicator();
         
@@ -391,15 +453,131 @@
         localStorage.setItem('learningData', JSON.stringify(this.userData));
       },
       
+      saveUserProfile(profile) {
+        localStorage.setItem('userProfile', JSON.stringify(profile));
+      },
+
+      showProfileOverlay() {
+        const overlay = document.getElementById('profileOverlay');
+        overlay.classList.remove('hidden');
+
+        const form = document.getElementById('profileForm');
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+
+          const profile = {
+            firstName: document.getElementById('firstName').value.trim(),
+            lastName: document.getElementById('lastName').value.trim(),
+            email: document.getElementById('email').value.trim(),
+          };
+
+          this.saveUserProfile(profile);
+          overlay.classList.add('hidden');
+          this.initWithConfig(courseConfig); // Reinitialize the app after saving the profile
+        });
+      },
+
+      showProfileModal() {
+        const modal = document.getElementById('profileModal');
+        const profileDetails = document.getElementById('profileDetails');
+        const profileEditForm = document.getElementById('profileEditForm');
+        const editProfileBtn = document.getElementById('editProfileBtn');
+        const saveProfileBtn = document.getElementById('saveProfileBtn');
+        const closeModal = document.getElementById('closeProfileModal');
+
+        const profile = JSON.parse(localStorage.getItem('userProfile'));
+
+        if (profile) {
+          // Populate the profile details with disabled input fields
+          profileDetails.innerHTML = `
+            <div class="space-y-4">
+              <div>
+                <label for="viewFirstName" class="block text-sm font-medium text-gray-700">First Name</label>
+                <input id="viewFirstName" type="text" value="${profile.firstName}" disabled
+                  class="w-full mt-1 p-2 border border-gray-300 rounded bg-gray-100 text-gray-700 focus:ring-0 focus:border-gray-300">
+              </div>
+              <div>
+                <label for="viewLastName" class="block text-sm font-medium text-gray-700">Last Name</label>
+                <input id="viewLastName" type="text" value="${profile.lastName}" disabled
+                  class="w-full mt-1 p-2 border border-gray-300 rounded bg-gray-100 text-gray-700 focus:ring-0 focus:border-gray-300">
+              </div>
+              <div>
+                <label for="viewEmail" class="block text-sm font-medium text-gray-700">Email</label>
+                <input id="viewEmail" type="email" value="${profile.email}" disabled
+                  class="w-full mt-1 p-2 border border-gray-300 rounded bg-gray-100 text-gray-700 focus:ring-0 focus:border-gray-300">
+              </div>
+            </div>
+          `;
+
+          // Populate the edit form fields
+          document.getElementById('editFirstName').value = profile.firstName;
+          document.getElementById('editLastName').value = profile.lastName;
+          document.getElementById('editEmail').value = profile.email;
+        }
+
+        // Show the modal
+        modal.classList.remove('hidden');
+
+        // Handle Edit button click
+        editProfileBtn.addEventListener('click', () => {
+          profileDetails.classList.add('hidden');
+          profileEditForm.classList.remove('hidden');
+          editProfileBtn.classList.add('hidden');
+          saveProfileBtn.classList.remove('hidden');
+        });
+
+        // Handle Save button click
+        saveProfileBtn.addEventListener('click', () => {
+          const updatedProfile = {
+            firstName: document.getElementById('editFirstName').value.trim(),
+            lastName: document.getElementById('editLastName').value.trim(),
+            email: document.getElementById('editEmail').value.trim(),
+          };
+
+          // Save the updated profile to localStorage
+          this.saveUserProfile(updatedProfile);
+
+          // Update the profile details view
+          profileDetails.innerHTML = `
+            <div class="space-y-4">
+              <div>
+                <label for="viewFirstName" class="block text-sm font-medium text-gray-700">First Name</label>
+                <input id="viewFirstName" type="text" value="${updatedProfile.firstName}" disabled
+                  class="w-full mt-1 p-2 border border-gray-300 rounded bg-gray-100 text-gray-700 focus:ring-0 focus:border-gray-300">
+              </div>
+              <div>
+                <label for="viewLastName" class="block text-sm font-medium text-gray-700">Last Name</label>
+                <input id="viewLastName" type="text" value="${updatedProfile.lastName}" disabled
+                  class="w-full mt-1 p-2 border border-gray-300 rounded bg-gray-100 text-gray-700 focus:ring-0 focus:border-gray-300">
+              </div>
+              <div>
+                <label for="viewEmail" class="block text-sm font-medium text-gray-700">Email</label>
+                <input id="viewEmail" type="email" value="${updatedProfile.email}" disabled
+                  class="w-full mt-1 p-2 border border-gray-300 rounded bg-gray-100 text-gray-700 focus:ring-0 focus:border-gray-300">
+              </div>
+            </div>
+          `;
+
+          // Switch back to view mode
+          profileDetails.classList.remove('hidden');
+          profileEditForm.classList.add('hidden');
+          editProfileBtn.classList.remove('hidden');
+          saveProfileBtn.classList.add('hidden');
+
+          this.showToast('Profile updated successfully!', 'success');
+        });
+
+        // Handle Close button click
+        closeModal.addEventListener('click', () => {
+          modal.classList.add('hidden');
+        });
+      },
+
       render() {
         this.renderNavigation();
         this.renderSidebar();
         this.renderMainContent();
         this.updatePageTitle();
-      },
-      
-      setupEventListeners() {
-        // Global event delegation
         document.addEventListener('click', this.handleGlobalClick.bind(this));
 
         // Set up search functionality
@@ -2175,6 +2353,18 @@
         if (loadingOverlay) {
           loadingOverlay.remove();
         }
+      },
+
+      setupEventListeners() {
+        document.addEventListener('click', this.handleGlobalClick.bind(this));
+
+        // Profile icon click
+        const profileIcon = document.querySelector('.fa-user-circle');
+        if (profileIcon) {
+          profileIcon.addEventListener('click', () => {
+            this.showProfileModal();
+          });
+        }
       }
     };
 
@@ -2258,29 +2448,4 @@
       </div>
       
       <!-- Social links and copyright -->
-      <div class="mt-8 pt-6 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center">
-        <div class="flex space-x-4">
-          <a href="#" class="text-gray-400 hover:text-brand-purple">
-            <i class="fab fa-twitter"></i>
-          </a>
-          <a href="#" class="text-gray-400 hover:text-brand-purple">
-            <i class="fab fa-facebook"></i>
-          </a>
-          <a href="#" class="text-gray-400 hover:text-brand-purple">
-            <i class="fab fa-instagram"></i>
-          </a>
-          <a href="#" class="text-gray-400 hover:text-brand-purple">
-            <i class="fab fa-linkedin"></i>
-          </a>
-          <a href="#" class="text-gray-400 hover:text-brand-purple">
-            <i class="fab fa-youtube"></i>
-          </a>
-        </div>
-        <div class="mt-4 sm:mt-0 text-sm text-gray-500">
-          &copy; 2025 Learning Platform. All rights reserved.
-        </div>
-      </div>
-    </div>
-  </footer>
-</body>
-</html>
+      <div class="mt-8 pt-6 border-t border-gray-100 flex flex
